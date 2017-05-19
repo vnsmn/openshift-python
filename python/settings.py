@@ -25,7 +25,7 @@ SECRET_KEY = '@-*x1tybmj0*h)o)4w-i^$h7kz(a3d0igz54p4h1h4ql)r(ot4'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['django-example-kilimandjaro.1d35.starter-us-east-1.openshiftapps.com']
 
 
 # Application definition
