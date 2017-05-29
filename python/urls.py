@@ -14,7 +14,17 @@ Including another URLconf
 """
 from django.conf.urls import include, url
 from django.contrib import admin
+from django.contrib.auth import views as auth_views
+from django.contrib.auth.decorators import login_required
+from core.views import BaseRedirectView
+from english.views import TopicsView, TopicView, client_handler
 
 urlpatterns = [
+    url(r'^eng/$', login_required(TopicsView.as_view()), name='eng'),
+    url(r'^eng/(?P<name>[a-z_]+)[ ]*[/]*$', login_required(TopicView.as_view()), name='eng_sec'),
+    url(r'^eng/(?P<topic_name>[a-z_]+)/(?P<uid>\d+)[ ]*[/]*$', client_handler, name='eng_client_handler'),
+    url(r'^$', login_required(BaseRedirectView.as_view()), name='redirect'),
     url(r'^admin/', include(admin.site.urls)),
+    url(r'^login/$', auth_views.login, {'template_name': 'login.html'}, name='login'),
+    url(r'^logout/$', auth_views.logout, {'template_name': 'logged_out.html'}, name='logout'),
 ]

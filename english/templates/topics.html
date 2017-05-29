@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h2 align="center">English topics</h2>
+
+  <table align="center">
+    <tr>
+      <th>Name</th>
+    </tr>
+    {% for sec in object_list %}
+      <tr>
+        <td><a href="{{ sec.name }}">{{ sec.title }}</a></td>
+      </tr>
+    {% endfor %}
+  </table>
+{% endblock %}

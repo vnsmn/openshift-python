@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}See you!{% endblock %}
+
+{% block content %}
+    <table align="center">
+        <tr>
+            <td style="width: 30%"></td>
+            <td>
+                <h2>Logged out</h2>
+                <p>You have been successfully logged out.</p>
+                <p><a href="{% url 'login' %}">Log in</a> again.</p>
+            </td>
+            <td style="width: 30%"></td>
+        </tr>
+    </table>
+{% endblock %}
