@@ -3,3 +3,6 @@ django-debug-toolbar==1.5
 gunicorn==19.4.5
 psycopg2==2.6.1
 whitenoise==3.0
+functools32==3.2.3.post2
+jsonschema==2.6.0
+

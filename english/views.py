@@ -127,6 +127,7 @@ irregular_schema = {
     },
 }
 
+# pip freeze
 # pip install functools32
 # pip install jsonschema
 # pip install --upgrade jsonschema
