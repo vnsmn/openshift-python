@@ -30,7 +30,6 @@ class ApplicationMiddleware(object):
         if request.user.id is not None and request.user.is_authenticated():
             u = User.objects.filter(id=request.user.id)
             us = UserResources.objects.filter(user=u).first()
-
             if self.__is_sub_url(us.url, request.path) and not self.__is_exclude_url(request.path):
                 request.session.set_expiry(None)
                 request.session["user_id_" + str(request.user.id)] = request.path
