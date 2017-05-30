@@ -95,7 +95,7 @@ DATABASES = {
         'NAME': 'postgresdb',
         'USER': 'postgresql',
         'PASSWORD': 'postgresql',
-        'HOST': '10.130.32.144',
+        'HOST': 'postgresql.kilimandjaro.svc',
         'PORT': '5432'
     },
     'english': {
@@ -103,7 +103,7 @@ DATABASES = {
         'NAME': 'postgresdb',
         'USER': 'postgresql',
         'PASSWORD': 'postgresql',
-        'HOST': '10.130.32.144',
+        'HOST': 'postgresql.kilimandjaro.svc',
         'PORT': '5432',
         'OPTIONS': {
             'options': '-c search_path=english'
@@ -114,7 +114,7 @@ DATABASES = {
         'NAME': 'postgresdb',
         'USER': 'postgresql',
         'PASSWORD': 'postgresql',
-        'HOST': '10.130.32.144',
+        'HOST': 'postgresql.kilimandjaro.svc',
         'PORT': '5432',
     }
 }
