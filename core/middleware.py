@@ -27,38 +27,38 @@ class ApplicationMiddleware(object):
     def process_request(self, request):
         get_logger().debug(msg='request: ' + request.get_full_path())
 
-        if request.user.id is not None and request.user.is_authenticated():
-            u = User.objects.filter(id=request.user.id)
-            us = UserResources.objects.filter(user=u).first()
-            if self.__is_sub_url(us.url, request.path) and not self.__is_exclude_url(request.path):
-                request.session.set_expiry(None)
-                request.session["user_id_" + str(request.user.id)] = request.path
-
-        if request.user.id is not None:
-            back_url = self._back_urls.get(str(request.user.id))
-            if not back_url:
-                u = User.objects.filter(id=request.user.id).first()
+        if ApplicationMiddleware.__is_valid_back_url(request.path):
+            if request.user.id is not None and request.user.is_authenticated():
+                u = User.objects.filter(id=request.user.id)
                 us = UserResources.objects.filter(user=u).first()
-                if us:
-                    back_url = list()
-                    back_url.append(us.first().url)
-                else:
+                if self.__is_sub_url(us.url, request.path):
+                    request.session.set_expiry(None)
+                    request.session["user_id_" + str(request.user.id)] = request.path
+
+            if request.user.id is not None:
+                back_url = self._back_urls.get(str(request.user.id))
+                if not back_url:
+                    u = User.objects.filter(id=request.user.id).first()
+                    us = UserResources.objects.filter(user=u).first()
+                    if us:
+                        back_url = list()
+                        back_url.append(us.first().url)
+                    else:
+                        return
+                    self._back_urls[request.user.id] = back_url
+                if not ApplicationMiddleware.__is_sub_url(back_url[0], request.path):
                     return
-                self._back_urls[request.user.id] = back_url
-            if not ApplicationMiddleware.__is_sub_url(back_url[0], request.path) \
-                    or ApplicationMiddleware.__is_exclude_url(request.path):
-                return
-            else:
-                if self.BACK in request.GET:
-                    back_id = int(request.GET.get(self.BACK))
-                    while back_id < len(back_url) - 1:
-                        back_url.pop()
-                    return self._response_redirect_class(request.path)
                 else:
-                    u1 = ApplicationMiddleware.__normal_url(request.get_full_path())
-                    u2 = ApplicationMiddleware.__normal_url((back_url[len(back_url) - 1], '')[len(back_url) == 0])
-                    if u1 != u2:
-                        back_url.append(request.get_full_path())
+                    if self.BACK in request.GET:
+                        back_id = int(request.GET.get(self.BACK))
+                        while back_id < len(back_url) - 1:
+                            back_url.pop()
+                        return self._response_redirect_class(request.path)
+                    else:
+                        u1 = ApplicationMiddleware.__normal_url(request.path)
+                        u2 = ApplicationMiddleware.__normal_url((back_url[len(back_url) - 1], '')[len(back_url) == 0])
+                        if u1 != u2:
+                            back_url.append(request.path)
 
     def process_template_response(self, request, response):
         back_url = self._back_urls.get(str(request.user.id))
@@ -87,8 +87,8 @@ class ApplicationMiddleware(object):
         return (sub_u + '/').startswith(top_u + '/')
 
     @staticmethod
-    def __is_exclude_url(u):
-        for pattern in settings.EXCLUDE_HISTORY_URL:
+    def __is_valid_back_url(u):
+        for pattern in settings.VALID_BACK_URL:
             if re.match(pattern, u):
                 return True
         return False

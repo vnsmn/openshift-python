@@ -37,9 +37,13 @@ function postJson(query, dataJson, callback) {
 
 function loadJson(fileName, handler) {
     getJSON(fileName, function (response) {
-        let jsonresponse = JSON.parse(response);
-        console.log(jsonresponse);
-        handler(jsonresponse);
+        try {
+            console.log(response);
+            let jsonresponse = JSON.parse(response);
+            handler(jsonresponse);
+        } catch (ex) {
+            handler({});
+        }
     });
 }
 
@@ -59,7 +63,7 @@ AudioContext = function (traces, loop, stateHandler) {
             stateHandler(state, this.tag);
         }
     }
-    this.starting = false;
+    this.starting = true;
 }
 
 AudioPlayer = function (url) {
@@ -112,6 +116,7 @@ AudioPlayer = function (url) {
     }
 
     var next = function () {
+        __currentAudioContext.doStateHandler('stop_trace')
         var t = __currentAudioContext.iterator.next();
         if (t.done && __currentAudioContext.loop > 0) {
             __currentAudioContext.loop--;
@@ -120,10 +125,10 @@ AudioPlayer = function (url) {
         }
         while (!t.done) {
             if (t.value.dl !== undefined && t.value.dl != null && t.value.dl > 0) {
-                if (__currentAudioContext.starting) sleep(t.value.dl);
-                t = __currentAudioContext.iterator.next();
+                if (!__currentAudioContext.starting) sleep(t.value.dl);
+                //t = __currentAudioContext.iterator.next();
                 __currentAudioContext.starting = false;
-                continue;
+                //continue;
             }
             __audio.currentTime = t.value.st;
             __currentAudioContext.endTime = t.value.ft;
@@ -153,6 +158,9 @@ AudioPlayer = function (url) {
         }
     }
 
+    var doEnded = function () {
+    }
+
     this.stop = function () {
         dispath({
             name: STATE.STOPED
@@ -162,9 +170,9 @@ AudioPlayer = function (url) {
 
     this.createTrace = function (start, finish, delay, tag) {
         if (delay !== undefined && delay != null && delay > 0) {
-            return {st: -1, ft: -1, dl: delay};
+            return {st: start, ft: finish, dl: delay, tag: tag};
         }
-        return {st: start, ft: finish, dl: 0, tag: tag};
+        return {st: start, ft: finish, dl: delay, tag: tag};
     }
 
     this.control;
@@ -173,7 +181,6 @@ AudioPlayer = function (url) {
         if (__currentAudioContext == null) return
         if (__currentAudioContext.endTime > 0 && __audio.currentTime > __currentAudioContext.endTime) {
             if (!__audio.paused) {
-                __currentAudioContext.doStateHandler('stop_trace')
                 __audio.pause();
             }
         }
@@ -195,7 +202,7 @@ AudioPlayer = function (url) {
     __currentAudioContext = null;
     __audio.src = url;
     __audio.load();
-    //__audio.onended = process;
+    __audio.onended = doEnded;
     __audio.onpause = process;
     __audio.ontimeupdate = doTimeupdate;
     __audio.onplay = function () {
@@ -221,7 +228,17 @@ PlayerWrapper = function(player, traces, loop, startingImgName, stoppingImgName,
     __control.height = 30;
     __control.width = 30;
     const __stateHandler = stateHandler;
+    var __traces = traces;
+    var __loop = loop;
     setState(STATE.STARTED)
+
+    this.setTraces = function (traces) {
+        __traces = traces;
+    }
+
+    this.setLoop = function (loop) {
+        __loop = loop;
+    }
 
     var getState = function() {
         return __control.getAttribute('player_state');;
@@ -240,7 +257,7 @@ PlayerWrapper = function(player, traces, loop, startingImgName, stoppingImgName,
         } else {
             setState(STATE.STOPED);
             __stateHandler.perform('start')
-            __player.play(traces, loop, function (state, tag) {
+            __player.play(__traces, __loop, function (state, tag) {
                 if (state == 'stop') {
                     setState(STATE.STARTED)
                 }
@@ -250,20 +267,17 @@ PlayerWrapper = function(player, traces, loop, startingImgName, stoppingImgName,
     }
 }
 
-function saveSettings(q, f) {
-    let setup = {
-        sels: {}
-    }
+function saveSettings(query, settings, fn) {
     var els = document.querySelectorAll("input[identity]:checked");
     [].forEach.call(els, function(el) {
         let id = el.getAttribute('identity')
-        setup.sels[id] = 1
+        settings.excludes[id] = 1
 	});
-    let data =  JSON.stringify(setup)
-    postJson(q, data, function(ret) {
+    let data =  JSON.stringify(settings)
+    postJson(query, data, function(ret) {
         console.log(ret)
         try {
-            f(ret);
+            fn(ret);
         } catch (e) {
             console.log(e)
         }
