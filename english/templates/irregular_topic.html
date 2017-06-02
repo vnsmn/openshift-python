@@ -1,8 +1,8 @@
 {% extends 'topic.html' %}
 {% block content %}
     {% load static %}
-    <script src="{% static "english/js/sound.js?q=1" %}"></script>
-    <script src="{% static "english/js/irregular.js?q=1" %}"></script>
+    <script src="{% static "english/js/sound.js?q=11" %}"></script>
+    <script src="{% static "english/js/irregular.js?q=11" %}"></script>
     <div align="center"><b>{{ title }}</b></div>
     <style type="text/css">
         .paddingBetweenRows td
@@ -31,7 +31,7 @@
         }
     </style>
 
-    <table width="100%" cellpadding="0" cellspacing="0" class="paddingBetweenRows">
+    <table id="controlid" width="100%" cellpadding="0" cellspacing="0" class="paddingBetweenRows">
         <tr>
             <td><span>inf:</span><input type="checkbox" id="infid" checked onclick="repaint()"></td>
             <td><span>pas:</span><input type="checkbox" id="pasid" checked onclick="repaint()"></td>
