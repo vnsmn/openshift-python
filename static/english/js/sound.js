@@ -38,7 +38,6 @@ function postJson(query, dataJson, callback) {
 function loadJson(fileName, handler) {
     getJSON(fileName, function (response) {
         try {
-            console.log(response);
             let jsonresponse = JSON.parse(response);
             handler(jsonresponse);
         } catch (ex) {
@@ -132,7 +131,7 @@ AudioPlayer = function (url) {
             }
             __audio.currentTime = t.value.st;
             __currentAudioContext.endTime = t.value.ft;
-            console.log(t.value.st + "-" + t.value.ft);
+            console.log(t.value.st + "-" + t.value.ft + ";" + t.value.text);
             __currentAudioContext.starting = false;
             __currentAudioContext.tag = t.value.tag;
             __currentAudioContext.doStateHandler('start_trace')
@@ -168,12 +167,16 @@ AudioPlayer = function (url) {
 
     }
 
-    this.createTrace = function (start, finish, delay, tag) {
+    this.createTrace = function (start, finish, delay, tag, text) {
         if (delay !== undefined && delay != null && delay > 0) {
-            return {st: start, ft: finish, dl: delay, tag: tag};
+            return {st: start, ft: finish, dl: delay, tag: tag, text: text};
         }
-        return {st: start, ft: finish, dl: delay, tag: tag};
+        return {st: start, ft: finish, dl: delay, tag: tag, text: text === undefined ? '' : text};
     }
+
+    // this.createTrace = function (start, finish, delay, tag) {
+    //     return this.createTrace(start, finish, delay, tag, '');
+    // }
 
     this.control;
 
@@ -267,20 +270,86 @@ PlayerWrapper = function(player, traces, loop, startingImgName, stoppingImgName,
     }
 }
 
-function saveSettings(query, settings, fn) {
-    var els = document.querySelectorAll("input[identity]:checked");
-    [].forEach.call(els, function(el) {
-        let id = el.getAttribute('identity')
-        settings.excludes[id] = 1
-	});
-    let data =  JSON.stringify(settings)
-    postJson(query, data, function(ret) {
-        console.log(ret)
-        try {
-            fn(ret);
-        } catch (e) {
-            console.log(e)
+function clearElement(elementID) {
+    var el = document.getElementById(elementID);
+    while (el.hasChildNodes()) {
+        el.removeChild(el.firstChild);
+    }
+}
+
+//A page session lasts for as long as the browser is open and survives over page reloads and restores.
+//Opening a page in a new tab or window will cause a new session to be initiated
+
+function saveInSessionStorage(key, value) {
+    if (typeof(Storage) !== "undefined") {
+        sessionStorage.setItem(key, JSON.stringify(value))
+    } else {
+        console.log("Sorry! No Web Storage support..");
+    }
+}
+
+function getFromSessionStorage(key) {
+    if (typeof(Storage) !== "undefined") {
+        return JSON.parse(sessionStorage.getItem(key));
+    } else {
+        console.log("Sorry! No Web Storage support..");
+        return null;
+    }
+}
+
+PersistentObject = function() {
+    var __name = null;
+    var __init_fn = null;
+    var self = this;
+
+    this.init = function(name, init_fn) {
+        __name = name;
+        __init_fn = init_fn;
+        saveInSessionStorage(name, null);
+    }
+
+    this.recreate = function() {
+        var data = __init_fn();
+        self.commit(data);
+    }
+
+    this.commit = function(data) {
+        saveInSessionStorage(__name, data);
+    }
+
+    this.get = function() {
+        var data = getFromSessionStorage(__name)
+        if (!check(data)) {
+            data = __init_fn();
+            saveInSessionStorage(__name, data);
         }
-    })
-    console.log(data)
+        return data;
+    }
+
+    this.saveToServer = function (query, fn) {
+        let sdata = JSON.stringify(self.get());
+        postJson(query, sdata, function(ret) {
+            console.log(ret)
+            try {
+                fn();
+            } catch (e) {
+                console.log(e)
+            }
+        })
+    }
+
+    this.readFromServer = function (query, callback) {
+        loadJson(query, function (response) {
+            var data = response;
+            if (!check(data)) {
+                data = self.recreate();
+            }
+            self.commit(data);
+            callback(data);
+        })
+    }
+
+    var check = function (data) {
+        return data != null && data['id'] !== undefined && data.id == __name;
+    }
 }

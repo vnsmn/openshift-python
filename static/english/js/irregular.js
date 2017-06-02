@@ -10,7 +10,7 @@ var playAllWrapper;
 var __startImgName;
 var __stopImgName;
 
-function loadPage(urls, startImgName, stopImgName, settings) {
+function loadPage(urls, startImgName, stopImgName) {
     __startImgName = startImgName;
     __stopImgName = stopImgName;
     loadJson(urls.meta_sound_url, function (response1) {
@@ -23,8 +23,8 @@ function loadPage(urls, startImgName, stopImgName, settings) {
                     i150 = response4;
                     var content = document.getElementById("table1");
                     content.style.display = 'none'
-                    createPage(settings);
-                    showContent(settings);
+                    createPage();
+                    showContent();
                     content.style.display = 'block'
                 });
             });
@@ -40,7 +40,8 @@ function getTimes(soundJsn, data) {
 }
 
 
-function createPage(settings) {
+function createPage() {
+    let settings = SettingsSingleton.getInstance().get();
     player = new AudioPlayer(meta_sound.sound_url)
     var RowStateHandler = function() {
         this.perform = function (state, ctl) {
@@ -107,13 +108,13 @@ function createPage(settings) {
         row.setAttribute("lineirr", line.inf[0])
         let trace = []
         let ts = getTimes(meta_sound, line.inf);
-        trace.push(player.createTrace(ts.t1, ts.t2, delay, cell2))
+        trace.push(player.createTrace(ts.t1, ts.t2, delay, cell2, line.inf[0]))
         ts = getTimes(meta_sound, line.pas);
-        trace.push(player.createTrace(ts.t1, ts.t2, delay, cell3))
+        trace.push(player.createTrace(ts.t1, ts.t2, delay, cell3, line.pas[0]))
         ts = getTimes(meta_sound, line.prf);
-        trace.push(player.createTrace(ts.t1, ts.t2, delay, cell4))
+        trace.push(player.createTrace(ts.t1, ts.t2, delay, cell4, line.prf[0]))
         ts = getTimes(meta_sound, line.rus);
-        trace.push(player.createTrace(ts.t1, ts.t2, delay, cell5))
+        trace.push(player.createTrace(ts.t1, ts.t2, delay, cell5, line.rus[0]))
         traces[line.inf[0]] = trace;
         let playImg = new PlayerWrapper(player, [], loop, __startImgName, __stopImgName, new RowStateHandler());
         row.playImg = playImg;
@@ -151,7 +152,8 @@ function createPage(settings) {
     playAll.appendChild(playAllWrapper.getControl());
 }
 
-function showContent(settings) {
+function showContent() {
+    let settings = SettingsSingleton.getInstance().get();
     let excludes = settings == undefined || settings['excludes'] == undefined ? {} : settings.excludes;
     let els = document.querySelectorAll('tr[lineirr]');
     let all_trace = [];
@@ -214,4 +216,46 @@ function showContent(settings) {
     });
 }
 
+function createPageNavigation(viewID, doclick) {
+    let settings = SettingsSingleton.getInstance().get();
+    let group = document.getElementById(viewID);
+    clearElement(viewID);
+    let count = Math.floor(settings.total_of_verbs / settings.range_of_verbs);
+    for (var i = 0; i < count; i++) {
+        let el = document.createElement("input");
+        el.type = 'radio';
+        el.name = 'page_navigation';
+        el.value = i;
+        el.checked = i == settings.range_of_verbs_index;
+        el.onclick = function () {
+            let settings = SettingsSingleton.getInstance().get();
+            settings.range_of_verbs_index = this.value;
+            SettingsSingleton.getInstance().commit(settings);
+            doclick();
+        };
+        group.appendChild(el);
+        let span = document.createElement("span");
+        span.innerHTML = i + 1;
+        ;
+        group.appendChild(span);
+    }
+}
 
+var SettingsSingleton = (function () {
+    var instance;
+
+    function createInstance() {
+        //Settings.prototype = new PersistentObject();
+        //var object = new Settings('settings_irregular', null);
+        return new PersistentObject();
+    }
+
+    return {
+        getInstance: function () {
+            if (!instance) {
+                instance = createInstance();
+            }
+            return instance;
+        }
+    };
+})();

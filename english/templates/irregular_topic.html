@@ -1,8 +1,8 @@
 {% extends 'topic.html' %}
 {% block content %}
     {% load static %}
-    <script src="{% static "english/js/sound.js?v=11211" %}"></script>
-    <script src="{% static "english/js/irregular.js?v=11112" %}"></script>
+    <script src="{% static "english/js/sound.js?q=1" %}"></script>
+    <script src="{% static "english/js/irregular.js?q=1" %}"></script>
     <div align="center"><b>{{ title }}</b></div>
     <style type="text/css">
         .paddingBetweenRows td
@@ -60,13 +60,15 @@
             </td>
         </tr>
         <tr>
-            <td id="groupid" colspan="9" align="center"></td>
+            <td id="navigateid" colspan="9" align="center"></td>
         </tr>
     </table>
     <div id="playAll"></div>
     <table id="table1" cellpadding="0" cellspacing="0" class='content'></table>
 
     <script>
+        SettingsSingleton.getInstance().init('settings_irregular', createSettings);
+
         document.onreadystatechange = function () {
             if (document.readyState == "complete") {
                 load('view');
@@ -74,20 +76,24 @@
         }
         function save(self) {
             let mode = self.getAttribute('mode');
+            let url = '/eng/irregular/{{ user_id }}/?dir=save';
             if (mode == 'save') {
-                saveSettings('/eng/irregular/{{ user_id }}/?dir=save', createSettings(), function (data) {
-                });
+                SettingsSingleton.getInstance().recreate();
+                SettingsSingleton.getInstance().saveToServer(url, function () {});
             } else if (mode == 'edit') {
                 self.setAttribute('mode', 'view')
                 self.value = 'Edit'
-                saveSettings('/eng/irregular/{{ user_id }}/?dir=save', createSettings(), function (data) {
-                    clear()
+                SettingsSingleton.getInstance().recreate();
+                SettingsSingleton.getInstance().saveToServer(url, function () {
+                    clearElement("table1");
+                    clearElement("playAll");
                     load();
                 });
             } else {
                 self.setAttribute('mode', 'edit')
                 self.value = 'View'
-                clear()
+                clearElement("table1");
+                clearElement("playAll");
                 load();
             }
         }
@@ -99,53 +105,40 @@
                 let startImgName = "{% static 'english/img/play-start.png' %}";
                 let stopImgName = "{% static 'english/img/play-stop.png' %}";
                 let settings_url = '/eng/irregular/{{ user_id }}/?dir=read';
-                let settings = null;
                 var urls = {
                     meta_sound_url: meta_sound_url,
                     i50_url: dic50_sound_url,
                     i100_url: dic100_sound_url,
                     i150_url: dic150_sound_url
                 }
-                loadJson(settings_url, function (response1) {
-                    settings = response1;
-                    if (settings['id'] === undefined || settings['id'] != 'settings_irregular')
-                        settings = createSettings();
-                    else {
-                        let mode = document.getElementById('modeid').getAttribute('mode');
-                        settings.mode = mode;
-                        initControls(settings);
-                    }
-                    createPageNavigation(settings);
-                    loadPage(urls, startImgName, stopImgName, settings);
+                SettingsSingleton.getInstance().readFromServer(settings_url, function (settings) {
+                    settings.mode = document.getElementById('modeid').getAttribute('mode');
+                    SettingsSingleton.getInstance().commit(settings);
+                    initControls();
+                    createPageNavigation("navigateid", repaint);
+                    loadPage(urls, startImgName, stopImgName);
                 })
-        }
-        function clear() {
-            var el = document.getElementById("table1");
-            while (el.hasChildNodes()) {
-                el.removeChild(el.firstChild);
-            }
-            el = document.getElementById("playAll");
-            while (el.hasChildNodes()) {
-                el.removeChild(el.firstChild);
-            }
         }
 
         function repaint() {
-            let settings = createSettings();
-            createPageNavigation(settings);
-            showContent(settings)
+            SettingsSingleton.getInstance().recreate();
+            createPageNavigation("navigateid", repaint);
+            showContent()
         }
 
         function recreate() {
-            let settings = createSettings();
-            clear();
-            createPageNavigation(settings);
-            createPage(settings)
-            showContent(settings)
+            SettingsSingleton.getInstance().recreate();
+            clearElement("table1");
+            clearElement("playAll");
+            createPageNavigation("navigateid", repaint);
+            createPage()
+            showContent()
         }
 
         function createSettings() {
             let mode = document.getElementById('modeid').getAttribute('mode');
+            let el = document.querySelector('input[name=page_navigation]:checked');
+            let range_of_verbs_index = el == null ? 0 : parseInt(el.value);
             let settings = {
                 id: 'settings_irregular',
                 mode: mode,
@@ -172,10 +165,16 @@
                 loop: document.getElementById("loopid").checked ? 100 : 0,
                 delay: document.getElementById("delayid").selectedIndex
             }
+            var els = document.querySelectorAll("input[identity]:checked");
+            [].forEach.call(els, function(el) {
+                let id = el.getAttribute('identity')
+                settings.excludes[id] = 1
+            });
             return settings;
         }
 
-        function initControls(settings) {
+        function initControls() {
+            let settings = SettingsSingleton.getInstance().get();
             document.getElementById('infid').checked = settings.is_inf;
             document.getElementById('pasid').checked = settings.is_pas;
             document.getElementById('prfid').checked = settings.is_prf;
@@ -190,35 +189,9 @@
                 case 25: document.getElementById('group2id').checked = true; break;
                 case 50: document.getElementById('group3id').checked = true; break;
             }
-            range_of_verbs_index = settings.range_of_verbs_index;
             document.getElementById("loopid").checked = settings.loop > 0;
             document.getElementById("delayid").selectedIndex = settings.delay;
         }
-
-        function createPageNavigation(settings) {
-            let group = document.getElementById("groupid");
-            while (group.hasChildNodes()) {
-                group.removeChild(group.firstChild);
-            }
-            let count = Math.floor(settings.total_of_verbs / settings.range_of_verbs);
-            for (var i = 0; i < count; i++) {
-                let el = document.createElement("input");
-                el.type = 'radio';
-                el.pos = i;
-                el.name = 'selected_group';
-                el.checked = i == range_of_verbs_index;
-                el.onclick = function () {
-                    range_of_verbs_index = this.pos;
-                    repaint();
-                };
-                group.appendChild(el);
-                let span = document.createElement("span");
-                span.innerHTML = i + 1;
-                ;
-                group.appendChild(span);
-            }
-        }
-        var range_of_verbs_index = 0;
     </script>
 
 {% endblock %}
