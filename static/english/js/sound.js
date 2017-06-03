@@ -299,6 +299,7 @@ function getFromSessionStorage(key) {
 
 PersistentObject = function() {
     var __name = null;
+    var __data = null;
     var __init_fn = null;
     var self = this;
 
@@ -309,21 +310,22 @@ PersistentObject = function() {
     }
 
     this.recreate = function() {
-        var data = __init_fn();
-        self.commit(data);
+        __data = __init_fn();
+        self.save();
     }
 
-    this.commit = function(data) {
-        saveInSessionStorage(__name, data);
+    this.save = function() {
+        saveInSessionStorage(__name, __data);
     }
 
     this.get = function() {
-        var data = getFromSessionStorage(__name)
-        if (!check(data)) {
-            data = __init_fn();
-            saveInSessionStorage(__name, data);
+        if (__data == null)
+            __data = getFromSessionStorage(__name)
+        if (!check(__data)) {
+            __data = __init_fn();
+            self.save();
         }
-        return data;
+        return __data;
     }
 
     this.saveToServer = function (query, fn) {
@@ -340,12 +342,12 @@ PersistentObject = function() {
 
     this.readFromServer = function (query, callback) {
         loadJson(query, function (response) {
-            var data = response;
-            if (!check(data)) {
-                data = self.recreate();
+            __data = response;
+            if (!check(__data)) {
+                self.recreate();
             }
-            self.commit(data);
-            callback(data);
+            self.save();
+            callback();
         })
     }
 

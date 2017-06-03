@@ -2,22 +2,36 @@
 {% block content %}
     {% load static %}
     <script src="{% static "english/js/sound.js?q=11" %}"></script>
-    <script src="{% static "english/js/irregular.js?q=11" %}"></script>
+    <script src="{% static "english/js/irregular.js?q=11111" %}"></script>
     <div align="center"><b>{{ title }}</b></div>
     <style type="text/css">
+        .ctl {
+            display: inline-block;
+            font-size: small;
+            font-weight: bold;
+            color: darkslategray;
+        }
         .paddingBetweenRows td
         {
             padding:0 5px 0 5px;
+            border-left: thin solid grey ;
+            border-top: thin solid grey ;
         }
         .content table
         {
+            width: 100%;
+            table-layout: fixed;
         }
         .content td
         {
             vertical-align: middle;
             padding:0 0px 0 0px;
             color: black;
-
+        }
+        .content td.head
+        {
+            vertical-align: middle;
+            color: grey;
         }
         td.trn
         {
@@ -25,46 +39,60 @@
             padding:0 10px 0 5px;
             color: grey;
         }
+        td.number
+        {
+            vertical-align: middle;
+            font-size: small;
+            color: grey;
+        }
         td[irr]
         {
-            display: inline;
+{#            display: inline;#}
         }
     </style>
 
-    <table id="controlid" width="100%" cellpadding="0" cellspacing="0" class="paddingBetweenRows">
+    <div id="controlid" style="border: thin solid grey">
+                <div class="ctl"><span>inf:</span><input type="checkbox" id="infid" checked onclick="repaint()"></div>
+                <div class="ctl"><span>pas:</span><input type="checkbox" id="pasid" checked onclick="repaint()"></div>
+                <div class="ctl"><span>prf:</span><input type="checkbox" id="prfid" checked onclick="repaint()"></div>
+                <div class="ctl"><span>rus:</span><input type="checkbox" id="rusid" checked onclick="repaint()"></div>
+                <div class="ctl"><span>loop:</span><input type="checkbox" id="loopid" checked onclick="repaint()"></div>
+                <div class="ctl"><span>delay:&nbsp;</span><select id="delayid" onclick="repaint()">
+                    <option value="0">0 sec</option>
+                    <option value="1">1 sec</option>
+                    <option value="2">2 sec</option>
+                </select>
+                </div>
+                <div class="ctl">
+                    &nbsp;&nbsp;&nbsp;total:
+                    <input id="50id" type="radio" name="length" checked onclick="recreate()">50
+                    <input id="100id" type="radio" name="length" onclick="recreate()">100
+                    <input id="150id" type="radio" name="length" onclick="recreate()">150
+                </div>
+                <div class="ctl">
+                    &nbsp;&nbsp;&nbsp;section:
+                    <input id="group1id" type="radio" style="display:inline;" name="group" checked onclick="repaint()">10
+                    <input id="group2id" type="radio" style="display:inline;" name="group" onclick="repaint()">25
+                    <input id="group3id" type="radio" style="display:inline;" name="group" onclick="repaint()">50
+                </div>
+                <div class="ctl">
+                    &nbsp;&nbsp;&nbsp;<input id="modeid" type="button" checked onclick="save(this)" mode='view' value="Edit">
+                    <input id="saveid" type="button" checked onclick="save(this)" mode='save' value="Save">
+                </div>
+                <div id="navigateid" class="ctl" align="center" style="display: block"></div>
+    </div>
+
+    <div id="playAll"></div>
+    <table id="table1" cellpadding="0" cellspacing="0" class='content'>
         <tr>
-            <td><span>inf:</span><input type="checkbox" id="infid" checked onclick="repaint()"></td>
-            <td><span>pas:</span><input type="checkbox" id="pasid" checked onclick="repaint()"></td>
-            <td><span>prf:</span><input type="checkbox" id="prfid" checked onclick="repaint()"></td>
-            <td><span>rus:</span><input type="checkbox" id="rusid" checked onclick="repaint()"></td>
-            <td><span>loop:</span><input type="checkbox" id="loopid" checked onclick="repaint()"></td>
-            <td><span>delay:&nbsp;</span><select id="delayid" onclick="repaint()">
-                <option value="0">0 sec</option>
-                <option value="1">1 sec</option>
-                <option value="2">2 sec</option>
-            </select>
-            <td width="500px" style="display: inline-block">
-                amount:
-                <input id="50id" type="radio" name="length" checked onclick="recreate()">50
-                <input id="100id" type="radio" name="length" onclick="recreate()">100
-                <input id="150id" type="radio" name="length" onclick="recreate()">150
-                group:
-                <input id="group1id" type="radio" name="group" checked onclick="repaint()">10
-                <input id="group2id" type="radio" name="group" onclick="repaint()">25
-                <input id="group3id" type="radio" name="group" onclick="repaint()">50
-            </td>
-            </td>
-            <td width="100%">
-                <input id="modeid" type="button" checked onclick="save(this)" mode='view' value="Edit">
-                <input id="saveid" type="button" checked onclick="save(this)" mode='save' value="Save">
-            </td>
-        </tr>
-        <tr>
-            <td id="navigateid" colspan="9" align="center"></td>
+            <td class="head"></td>
+            <td class="head"></td>
+            <td class="head" colspan="2" irr="inf">infinitive</td>
+            <td class="head" colspan="2" irr="pas">past</td>
+            <td class="head" colspan="2" irr="prf">perfect</td>
+            <td class="head" colspan="2" irr="rus">translation</td>
         </tr>
     </table>
-    <div id="playAll"></div>
-    <table id="table1" cellpadding="0" cellspacing="0" class='content'></table>
 
     <script>
         SettingsSingleton.getInstance().init('settings_irregular', createSettings);
@@ -111,12 +139,13 @@
                     i100_url: dic100_sound_url,
                     i150_url: dic150_sound_url
                 }
-                SettingsSingleton.getInstance().readFromServer(settings_url, function (settings) {
-                    settings.mode = document.getElementById('modeid').getAttribute('mode');
-                    SettingsSingleton.getInstance().commit(settings);
+                SettingsSingleton.getInstance().readFromServer(settings_url, function () {
+                    SettingsSingleton.getInstance().get().mode = document.getElementById('modeid').getAttribute('mode');
+                    SettingsSingleton.getInstance().save();
                     initControls();
-                    createPageNavigation("navigateid", repaint);
-                    loadPage(urls, startImgName, stopImgName);
+                    loadPage(urls, startImgName, stopImgName, function() {
+                        createPageNavigation("navigateid", repaint);
+                    });
                 })
         }
 

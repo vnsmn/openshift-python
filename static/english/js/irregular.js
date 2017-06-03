@@ -10,7 +10,7 @@ var playAllWrapper;
 var __startImgName;
 var __stopImgName;
 
-function loadPage(urls, startImgName, stopImgName) {
+function loadPage(urls, startImgName, stopImgName, callback) {
     __startImgName = startImgName;
     __stopImgName = stopImgName;
     loadJson(urls.meta_sound_url, function (response1) {
@@ -23,6 +23,7 @@ function loadPage(urls, startImgName, stopImgName) {
                     i150 = response4;
                     var content = document.getElementById("table1");
                     content.style.display = 'none'
+                    callback();
                     createPage();
                     showContent();
                     content.style.display = 'block'
@@ -104,20 +105,22 @@ function createPage() {
         case 100: dic = i100; break;
         case 150: dic = i150; break;
     }
+    let n = 1;
     for (let t in dic.lines) {
         let line = dic.lines[t];
         let checked = settings.excludes[line.inf] !== undefined;
 
         var row = table.insertRow(table.rows.length);
-        var cell0 = row.insertCell(0);
-        var cell1 = row.insertCell(1);
-        var cell2 = row.insertCell(2);
-        var cell21 = row.insertCell(3);
-        var cell3 = row.insertCell(4);
-        var cell31 = row.insertCell(5);
-        var cell4 = row.insertCell(6);
-        var cell41 = row.insertCell(7);
-        var cell5 = row.insertCell(8);
+        var celln = row.insertCell(0);
+        var cell0 = row.insertCell(1);
+        var cell1 = row.insertCell(2);
+        var cell2 = row.insertCell(3);
+        var cell21 = row.insertCell(4);
+        var cell3 = row.insertCell(5);
+        var cell31 = row.insertCell(6);
+        var cell4 = row.insertCell(7);
+        var cell41 = row.insertCell(8);
+        var cell5 = row.insertCell(9);
 
         row.setAttribute("lineirr", line.inf)
         let trace = []
@@ -138,10 +141,10 @@ function createPage() {
         chk.checked = checked;
         chk.setAttribute("identity", line.inf);
         cell0.appendChild(chk);
-        cell0.style.display='inline-block'
+        //cell0.style.display='inline-block'
         cell0.setAttribute("irr","sel");
         cell1.appendChild(playImg.getControl());
-        cell1.style.display='inline-block'
+        //cell1.style.display='inline-block'
         cell2.innerHTML = line.inf;
         cell2.setAttribute("irr","inf");
         cell21.innerHTML = getTrn(meta_sound, line.inf);
@@ -159,6 +162,8 @@ function createPage() {
         cell41.className = 'trn'
         cell5.innerHTML = line.rus;
         cell5.setAttribute("irr","rus");
+        celln.innerHTML = n++;
+        celln.className = 'number';
     }
 
     var playAll = document.getElementById("playAll");
@@ -177,9 +182,9 @@ function showContent() {
     let delay = settings.delay * 1000;
     [].forEach.call(els, function(el) {
         let inf = el.getAttribute('lineirr');
-        let selected = (i >= min && i <= max) && (settings.mode == 'edit' || excludes[inf] === undefined);
+        let selected = (i >= min && i < max) && (settings.mode == 'edit' || excludes[inf] === undefined);
         i++;
-        el.style.display = selected ? 'block' : 'none'
+        el.style.display = selected ? '' : 'none'
         let line_trace = []
         if (selected) {
             if (settings.is_inf) {
@@ -218,23 +223,30 @@ function showContent() {
     [].forEach.call(els, function(el) {
         let attr = el.getAttribute('irr');
         if (attr == 'inf')
-            el.style.display = settings.is_inf ? 'inline' : 'none'
+            el.style.display = settings.is_inf ? '' : 'none'
         if (attr == 'pas')
-            el.style.display = settings.is_pas ? 'inline' : 'none'
+            el.style.display = settings.is_pas ? '' : 'none'
         if (attr == 'prf')
-            el.style.display = settings.is_prf ? 'inline' : 'none'
+            el.style.display = settings.is_prf ? '' : 'none'
         if (attr == 'rus')
-            el.style.display = settings.is_rus ? 'inline' : 'none'
+            el.style.display = settings.is_rus ? '' : 'none'
         if (attr == 'sel')
-            el.style.display = settings.mode == 'view' ? 'none' : 'inline'
+            el.style.display = settings.mode == 'view' ? 'none' : ''
     });
 }
 
 function createPageNavigation(viewID, doclick) {
     let settings = SettingsSingleton.getInstance().get();
+    let dic = null;
+    switch (settings.total_of_verbs) {
+        case 50: dic = i50; break;
+        case 100: dic = i100; break;
+        case 150: dic = i150; break;
+    }
     let group = document.getElementById(viewID);
     clearElement(viewID);
-    let count = Math.floor(settings.total_of_verbs / settings.range_of_verbs);
+    let count = Math.floor(dic.lines.length / settings.range_of_verbs);
+    if (dic.lines.length % settings.range_of_verbs > 0) count++;
     for (var i = 0; i < count; i++) {
         let el = document.createElement("input");
         el.type = 'radio';
@@ -242,9 +254,8 @@ function createPageNavigation(viewID, doclick) {
         el.value = i;
         el.checked = i == settings.range_of_verbs_index;
         el.onclick = function () {
-            let settings = SettingsSingleton.getInstance().get();
-            settings.range_of_verbs_index = this.value;
-            SettingsSingleton.getInstance().commit(settings);
+            SettingsSingleton.getInstance().get().range_of_verbs_index = this.value;
+            SettingsSingleton.getInstance().save();
             doclick();
         };
         group.appendChild(el);
