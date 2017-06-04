@@ -91,5 +91,6 @@ _irregular_schema = {
             "type": "integer"
         },
         "delay": {"enum": [0, 1, 2]},
+        "scroll": {"enum": [True, False]},
     },
 }

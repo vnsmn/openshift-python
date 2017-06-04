@@ -57,6 +57,7 @@
                 <div class="ctl"><span>prf:</span><input type="checkbox" id="prfid" checked onclick="repaint()"></div>
                 <div class="ctl"><span>rus:</span><input type="checkbox" id="rusid" checked onclick="repaint()"></div>
                 <div class="ctl"><span>loop:</span><input type="checkbox" id="loopid" checked onclick="repaint()"></div>
+                <div class="ctl"><span>scroll:</span><input type="checkbox" id="scrollid" onclick="repaint()"></div>
                 <div class="ctl"><span>delay:&nbsp;</span><select id="delayid" onclick="repaint()">
                     <option value="0">0 sec</option>
                     <option value="1">1 sec</option>
@@ -192,7 +193,8 @@
                                 : 25,
                 range_of_verbs_index: range_of_verbs_index,
                 loop: document.getElementById("loopid").checked ? 100 : 0,
-                delay: document.getElementById("delayid").selectedIndex
+                delay: document.getElementById("delayid").selectedIndex,
+                scroll: document.getElementById("scrollid").checked
             }
             var els = document.querySelectorAll("input[identity]:checked");
             [].forEach.call(els, function(el) {

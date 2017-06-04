@@ -63,6 +63,9 @@ function createPage() {
                 });
             } else if (state == 'start_trace') {
                 if (ctl !== undefined) {
+                    let settings2 = SettingsSingleton.getInstance().get();
+                    if (settings2['scroll'] !== undefined && settings2.scroll)
+                            ctl.scrollIntoView(true);
                     let attr = ctl.getAttribute('irr');
                     if (attr == 'rus') {
                         ctl.style.color = 'grey'
