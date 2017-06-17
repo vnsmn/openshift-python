@@ -1,36 +1,58 @@
 var player = null;
+var player_example = null;
 
-var meta_sound;
-var excludes;
-var i50;
-var i100;
-var i150;
-var traces = {}
-var playAllWrapper;
+var __context;
+var __traces = {}
+var __playAllWrapper;
 var __startImgName;
 var __stopImgName;
 
-function loadPage(urls, startImgName, stopImgName, callback) {
+var Context = function(meta_sound_url, example_sound_url, irregular_url) {
+    this.meta_sound_url = meta_sound_url;
+    this.example_sound_url = example_sound_url;
+    this.irregular_url = irregular_url;
+
+    this.meta_sound = null;
+    this.example_sound = null;
+    this.irregular = null;
+
+    this.isLoaded = function() {
+        return this.meta_sound != null && this.example_sound != null && this.irregular != null;
+    }
+}
+
+function loadFile(ctx) {
+    loadJson(ctx.meta_sound_url, function (response) {
+        ctx.meta_sound = response;
+    });
+    loadJson(ctx.example_sound_url, function (response) {
+        ctx.example_sound = response;
+    });
+    loadJson(ctx.irregular_url, function (response) {
+        ctx.irregular = response;
+    });
+}
+
+function loadPage(ctx, startImgName, stopImgName, callback) {
+    __context = ctx;
     __startImgName = startImgName;
     __stopImgName = stopImgName;
-    loadJson(urls.meta_sound_url, function (response1) {
-        meta_sound = response1;
-        loadJson(urls.i50_url, function (response2) {
-            i50 = response2;
-            loadJson(urls.i100_url, function (response3) {
-                i100 = response3;
-                loadJson(urls.i150_url, function (response4) {
-                    i150 = response4;
-                    var content = document.getElementById("table1");
-                    content.style.display = 'none'
-                    callback();
-                    createPage();
-                    showContent();
-                    content.style.display = 'block'
-                });
-            });
-        });
-    });
+
+    loadFile(ctx.i50);
+    loadFile(ctx.i100);
+    loadFile(ctx.i150);
+
+    var intervalid = setInterval(function() {
+        if (__context.i50.isLoaded() && __context.i100.isLoaded() && __context.i150.isLoaded()) {
+            clearInterval(intervalid);
+            var content = document.getElementById("table1");
+            content.style.display = 'none'
+            callback();
+            createPage();
+            showContent();
+            content.style.display = 'block'
+        }
+    }, 1000)
 }
 
 function getTimes(soundJsn, data) {
@@ -45,69 +67,105 @@ function getTrn(soundJsn, data) {
     return l === undefined || l == null ? '' : '[' + l[2] + ']';
 }
 
-function createPage() {
-    let settings = SettingsSingleton.getInstance().get();
-    player = new AudioPlayer(meta_sound.sound_url)
-    var RowStateHandler = function() {
-        this.perform = function (state, ctl) {
-            var controlid = document.getElementById("controlid");
-            var all_ctls = controlid.getElementsByTagName('*');
-            var modeid = document.getElementById("modeid");
-            var saveid = document.getElementById("saveid");
-            if (state == 'start') {
-                modeid.disabled = true;
-                saveid.disabled = true;
-                controlid.disabled = true;
-                [].forEach.call(all_ctls, function(el) {
-                    el.disabled = true;
-                });
-            } else if (state == 'start_trace') {
-                if (ctl !== undefined) {
-                    let settings2 = SettingsSingleton.getInstance().get();
-                    if (settings2['scroll'] !== undefined && settings2.scroll)
-                            ctl.scrollIntoView(true);
-                    let attr = ctl.getAttribute('irr');
-                    if (attr == 'rus') {
-                        ctl.style.color = 'grey'
-                        ctl.style.fontWeight = 'bold'
-                    } else {
-                        ctl.innerHTML = ctl.innerHTML.toUpperCase();
-                        ctl.style.color = 'red'
-                        ctl.style.fontWeight = 'bold'
-                    }
+var RowStateHandler = function() {
+    this.perform = function (state, ctl) {
+        var controlid = document.getElementById("controlid");
+        var all_ctls = controlid.getElementsByTagName('*');
+        if (state == 'start') {
+            controlid.disabled = true;
+            [].forEach.call(all_ctls, function(el) {
+                el.disabled = true;
+            });
+        } else if (state == 'start_trace') {
+            if (ctl !== undefined) {
+                let settings2 = SettingsSingleton.getInstance().get();
+                if (settings2['scroll'] !== undefined && settings2.scroll)
+                    ctl.scrollIntoView(true);
+                let attr = ctl.getAttribute('irr');
+                if (attr == 'rus') {
+                    ctl.style.color = 'grey'
+                    ctl.style.fontWeight = 'bold'
+                } else {
+                    ctl.innerHTML = ctl.innerHTML.toUpperCase();
+                    ctl.style.color = 'red'
+                    ctl.style.fontWeight = 'bold'
                 }
-            } else if (state == 'stop_trace') {
-                if (ctl !== undefined) {
-                    ctl.innerHTML = ctl.innerHTML.toLowerCase();
-                    ctl.style.color = 'black'
-                    ctl.style.fontWeight = 'normal'
-                }
-            } else if (state == 'stop') {
-                if (ctl !== undefined) {
-                    ctl.innerHTML = ctl.innerHTML.toLowerCase();
-                    ctl.style.color = 'black'
-                    ctl.style.fontWeight = 'normal'
-                }
-                modeid.disabled = false;
-                saveid.disabled = false;
-                controlid.disabled = false;
-                [].forEach.call(all_ctls, function(el) {
-                    el.disabled = false;
-                });
             }
+        } else if (state == 'stop_trace') {
+            if (ctl !== undefined) {
+                ctl.innerHTML = ctl.innerHTML.toLowerCase();
+                ctl.style.color = 'black'
+                ctl.style.fontWeight = 'normal'
+            }
+        } else if (state == 'stop') {
+            if (ctl !== undefined) {
+                ctl.innerHTML = ctl.innerHTML.toLowerCase();
+                ctl.style.color = 'black'
+                ctl.style.fontWeight = 'normal'
+            }
+            controlid.disabled = false;
+            [].forEach.call(all_ctls, function(el) {
+                el.disabled = false;
+            });
         }
     }
+}
 
-    traces = {};
+var ExampleRowStateHandler = function() {
+    this.perform = function (state, ctl) {
+        var controlid = document.getElementById("controlid");
+        var all_ctls = controlid.getElementsByTagName('*');
+        if (state == 'start') {
+            controlid.disabled = true;
+            [].forEach.call(all_ctls, function(el) {
+                el.disabled = true;
+            });
+        } else if (state == 'start_trace') {
+            if (ctl !== undefined) {
+                let settings2 = SettingsSingleton.getInstance().get();
+                if (settings2['scroll'] !== undefined && settings2.scroll)
+                    ctl.scrollIntoView(true);
+                let attr = ctl.getAttribute('irr');
+                if (attr == 'rus') {
+                    ctl.style.color = 'grey'
+                    ctl.style.fontWeight = 'bold'
+                } else {
+                    ctl.style.color = 'red'
+                    ctl.style.fontWeight = 'bold'
+                }
+            }
+        } else if (state == 'stop_trace') {
+            if (ctl !== undefined) {
+                ctl.style.color = 'black'
+                ctl.style.fontWeight = 'normal'
+            }
+        } else if (state == 'stop') {
+            if (ctl !== undefined) {
+                ctl.style.color = 'black'
+                ctl.style.fontWeight = 'normal'
+            }
+            controlid.disabled = false;
+            [].forEach.call(all_ctls, function(el) {
+                el.disabled = false;
+            });
+        }
+    }
+}
+
+function createPage() {
+    let settings = SettingsSingleton.getInstance().get();
+    let ctx = currentContext();
+    let dic = ctx.irregular;
+    let meta_sound = ctx.meta_sound;
+
+    player = new AudioPlayer(meta_sound.sound_url);
+    player_example = new AudioPlayer(ctx.example_sound.sound_url);
+
+    __traces = {};
     let delay = settings.delay * 1000;
     let loop = 1000;
     var table = document.getElementById("table1");
-    let dic = {}
-    switch (settings.total_of_verbs) {
-        case 50: dic = i50; break;
-        case 100: dic = i100; break;
-        case 150: dic = i150; break;
-    }
+
     let n = 1;
     for (let t in dic.lines) {
         let line = dic.lines[t];
@@ -135,7 +193,7 @@ function createPage() {
         trace.push(player.createTrace(ts.t1, ts.t2, delay, cell4, line.prf))
         ts = getTimes(meta_sound, line.rus);
         trace.push(player.createTrace(ts.t1, ts.t2, delay, cell5, line.rus))
-        traces[line.inf] = trace;
+        __traces[line.inf] = trace;
         let playImg = new PlayerWrapper(player, [], loop, __startImgName, __stopImgName, new RowStateHandler());
         row.playImg = playImg;
 
@@ -144,10 +202,8 @@ function createPage() {
         chk.checked = checked;
         chk.setAttribute("identity", line.inf);
         cell0.appendChild(chk);
-        //cell0.style.display='inline-block'
         cell0.setAttribute("irr","sel");
         cell1.appendChild(playImg.getControl());
-        //cell1.style.display='inline-block'
         cell2.innerHTML = line.inf;
         cell2.setAttribute("irr","inf");
         cell21.innerHTML = getTrn(meta_sound, line.inf);
@@ -167,11 +223,59 @@ function createPage() {
         cell5.setAttribute("irr","rus");
         celln.innerHTML = n++;
         celln.className = 'number';
+        row.examples = [];
+
+        createExample(table, row, line, ctx)
     }
 
     var playAll = document.getElementById("playAll");
-    playAllWrapper = new PlayerWrapper(player, [], loop, __startImgName, __stopImgName, new RowStateHandler());
-    playAll.appendChild(playAllWrapper.getControl());
+    __playAllWrapper = new PlayerWrapper(player, [], loop, __startImgName, __stopImgName, new RowStateHandler());
+    playAll.appendChild(__playAllWrapper.getControl());
+}
+
+function createExample(table, ln, line, ctx) {
+    if (line['examples'] === undefined || line.examples == null || line.examples.length == 0) {
+        return;
+    }
+
+    var delay = 1000;
+    var loop = 1000;
+
+    let allTrace = [];
+
+    if (line.examples.length > 1) {
+        var row = table.insertRow(table.rows.length);
+        ln.examples.push(row);
+
+        row.insertCell(0);
+        row.insertCell(1);
+
+        var cell1 = row.insertCell(2);
+        let playImg = new PlayerWrapper(player_example, allTrace, loop, __startImgName, __stopImgName, new ExampleRowStateHandler());
+        cell1.appendChild(playImg.getControl());
+        row.playImg = playImg;
+    }
+
+    [].forEach.call(line.examples, function(text) {
+        var row = table.insertRow(table.rows.length);
+        ln.examples.push(row);
+
+        row.insertCell(0);
+        row.insertCell(1);
+
+        var cell1 = row.insertCell(2);
+        let trace = []
+        let ts = getTimes(ctx.example_sound, text);
+        let playImg = new PlayerWrapper(player_example, trace, loop, __startImgName, __stopImgName, new ExampleRowStateHandler());
+        cell1.appendChild(playImg.getControl());
+        row.playImg = playImg;
+
+        var cell2 = row.insertCell(3);
+        cell2.setAttribute('colspan', 9);
+        cell2.innerHTML = text;
+        trace.push(player_example.createTrace(ts.t1, ts.t2, delay, cell2, text))
+        allTrace.push(player_example.createTrace(ts.t1, ts.t2, delay, cell2, text))
+    });
 }
 
 function showContent() {
@@ -187,35 +291,42 @@ function showContent() {
         let inf = el.getAttribute('lineirr');
         let selected = (i >= min && i < max) && (settings.mode == 'edit' || excludes[inf] === undefined);
         i++;
-        el.style.display = selected ? '' : 'none'
+        el.style.display = selected ? '' : 'none';
+        [].forEach.call(el.examples, function(el_ex) {
+            el_ex.style.display = settings.example && selected ? '' : 'none'
+            el_ex.playImg.setLoop(settings.loop);
+            [].forEach.call(el_ex.playImg.getTraces(), function (trace) {
+                trace.dl = delay;
+            })
+        });
         let line_trace = []
         if (selected) {
             if (settings.is_inf) {
-                line_trace.push(traces[inf][0])
-                all_trace.push(traces[inf][0])
+                line_trace.push(__traces[inf][0])
+                all_trace.push(__traces[inf][0])
             }
-            traces[inf][0].dl = delay;
+            __traces[inf][0].dl = delay;
             if (settings.is_pas) {
-                line_trace.push(traces[inf][1])
-                all_trace.push(traces[inf][1])
+                line_trace.push(__traces[inf][1])
+                all_trace.push(__traces[inf][1])
             }
-            traces[inf][1].dl = delay;
+            __traces[inf][1].dl = delay;
             if (settings.is_prf) {
-                line_trace.push(traces[inf][2])
-                all_trace.push(traces[inf][2])
+                line_trace.push(__traces[inf][2])
+                all_trace.push(__traces[inf][2])
             }
-            traces[inf][2].dl = delay;
+            __traces[inf][2].dl = delay;
             if (settings.is_rus) {
-                line_trace.push(traces[inf][3])
-                all_trace.push(traces[inf][3])
+                line_trace.push(__traces[inf][3])
+                all_trace.push(__traces[inf][3])
             }
-            traces[inf][3].dl = delay;
+            __traces[inf][3].dl = delay;
         }
         el.playImg.setTraces(line_trace)
         el.playImg.setLoop(settings.loop)
     });
-    playAllWrapper.setTraces(all_trace)
-    playAllWrapper.setLoop(settings.loop)
+    __playAllWrapper.setTraces(all_trace)
+    __playAllWrapper.setLoop(settings.loop)
 
     els = document.querySelectorAll('input[sel]');
     [].forEach.call(els, function(el) {
@@ -238,18 +349,23 @@ function showContent() {
     });
 }
 
+function currentContext() {
+    let settings = SettingsSingleton.getInstance().get();
+    switch (settings.total_of_verbs) {
+        case 50: return __context.i50;
+        case 100: return __context.i100;
+        case 150: return __context.i150;
+    }
+    return null;
+}
+
 function createPageNavigation(viewID, doclick) {
     let settings = SettingsSingleton.getInstance().get();
-    let dic = null;
-    switch (settings.total_of_verbs) {
-        case 50: dic = i50; break;
-        case 100: dic = i100; break;
-        case 150: dic = i150; break;
-    }
+    let ctx = currentContext();
     let group = document.getElementById(viewID);
     clearElement(viewID);
-    let count = Math.floor(dic.lines.length / settings.range_of_verbs);
-    if (dic.lines.length % settings.range_of_verbs > 0) count++;
+    let count = Math.floor(ctx.irregular.lines.length / settings.range_of_verbs);
+    if (ctx.irregular.lines.length % settings.range_of_verbs > 0) count++;
     for (var i = 0; i < count; i++) {
         let el = document.createElement("input");
         el.type = 'radio';

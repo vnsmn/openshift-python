@@ -1,8 +1,8 @@
 {% extends 'topic.html' %}
 {% block content %}
     {% load static %}
-    <script src="{% static "english/js/sound.js?q=11" %}"></script>
-    <script src="{% static "english/js/irregular.js?q=11111" %}"></script>
+    <script src="{% static "english/js/sound.js?q=1" %}"></script>
+    <script src="{% static "english/js/irregular.js?q=1" %}"></script>
     <div align="center"><b>{{ title }}</b></div>
     <style type="text/css">
         .ctl {
@@ -58,6 +58,7 @@
                 <div class="ctl"><span>rus:</span><input type="checkbox" id="rusid" checked onclick="repaint()"></div>
                 <div class="ctl"><span>loop:</span><input type="checkbox" id="loopid" checked onclick="repaint()"></div>
                 <div class="ctl"><span>scroll:</span><input type="checkbox" id="scrollid" onclick="repaint()"></div>
+                <div class="ctl"><span>example:</span><input type="checkbox" id="exampleid" onclick="repaint()"></div>
                 <div class="ctl"><span>delay:&nbsp;</span><select id="delayid" onclick="repaint()">
                     <option value="0">0 sec</option>
                     <option value="1">1 sec</option>
@@ -127,18 +128,13 @@
             }
         }
         function load() {
-                let meta_sound_url = "{{ meta_sound_url }}";
-                let dic50_sound_url = "{{ i50_url }}";
-                let dic100_sound_url = "{{ i100_url }}";
-                let dic150_sound_url = "{{ i150_url }}";
                 let startImgName = "{% static 'english/img/play-start.png' %}";
                 let stopImgName = "{% static 'english/img/play-stop.png' %}";
                 let settings_url = '/eng/irregular/{{ user_id }}/?dir=read';
                 var urls = {
-                    meta_sound_url: meta_sound_url,
-                    i50_url: dic50_sound_url,
-                    i100_url: dic100_sound_url,
-                    i150_url: dic150_sound_url
+                    i50: new Context("{{ i50_meta_sound_url }}", "{{ i50_example_sound_url }}", "{{ i50_url }}"),
+                    i100: new Context("{{ i100_meta_sound_url }}", "{{ i100_example_sound_url }}", "{{ i100_url }}"),
+                    i150: new Context("{{ i150_meta_sound_url }}", "{{ i150_example_sound_url }}", "{{ i150_url }}"),
                 }
                 SettingsSingleton.getInstance().readFromServer(settings_url, function () {
                     SettingsSingleton.getInstance().get().mode = document.getElementById('modeid').getAttribute('mode');
@@ -194,7 +190,8 @@
                 range_of_verbs_index: range_of_verbs_index,
                 loop: document.getElementById("loopid").checked ? 100 : 0,
                 delay: document.getElementById("delayid").selectedIndex,
-                scroll: document.getElementById("scrollid").checked
+                scroll: document.getElementById("scrollid").checked,
+                example: document.getElementById("exampleid").checked
             }
             var els = document.querySelectorAll("input[identity]:checked");
             [].forEach.call(els, function(el) {
@@ -223,6 +220,7 @@
             document.getElementById("loopid").checked = settings.loop > 0;
             document.getElementById("delayid").selectedIndex = settings.delay;
             document.getElementById("scrollid").checked = settings.scroll;
+            document.getElementById("exampleid").checked = settings.example;
         }
     </script>
 

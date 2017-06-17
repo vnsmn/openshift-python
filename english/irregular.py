@@ -14,13 +14,23 @@ class IrregularHelper(object):
     @staticmethod
     def fill_context_data(uid, name, context):
         topics = Topics.objects.filter(name=name).first()
-        meta = Topic.objects.filter(topic=topics, name="meta.sound.url").first()
+        meta50 = Topic.objects.filter(topic=topics, name="i50.meta.sound.url").first()
+        meta100 = Topic.objects.filter(topic=topics, name="i100.meta.sound.url").first()
+        meta150 = Topic.objects.filter(topic=topics, name="i150.meta.sound.url").first()
+        example50 = Topic.objects.filter(topic=topics, name="i50.example.sound.url").first()
+        example100 = Topic.objects.filter(topic=topics, name="i100.example.sound.url").first()
+        example150 = Topic.objects.filter(topic=topics, name="i150.example.sound.url").first()
         topic50 = Topic.objects.filter(topic=topics, name="i50.url").first()
         topic100 = Topic.objects.filter(topic=topics, name="i100.url").first()
         topic150 = Topic.objects.filter(topic=topics, name="i150.url").first()
         context["template_name"] = topics.template
         context["title"] = topics.title
-        context["meta_sound_url"] = meta.data
+        context["i50_meta_sound_url"] = meta50.data
+        context["i100_meta_sound_url"] = meta100.data
+        context["i150_meta_sound_url"] = meta150.data
+        context["i50_example_sound_url"] = example50.data
+        context["i100_example_sound_url"] = example100.data
+        context["i150_example_sound_url"] = example150.data
         context["i50_url"] = topic50.data
         context["i100_url"] = topic100.data
         context["i150_url"] = topic150.data

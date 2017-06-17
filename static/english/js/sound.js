@@ -117,6 +117,9 @@ AudioPlayer = function (url) {
     var next = function () {
         __currentAudioContext.doStateHandler('stop_trace')
         var t = __currentAudioContext.iterator.next();
+        while (!t.done && t.value.skip) {
+            t = __currentAudioContext.iterator.next();
+        }
         if (t.done && __currentAudioContext.loop > 0) {
             __currentAudioContext.loop--;
             __currentAudioContext.iterator = __currentAudioContext.traces[Symbol.iterator]();
@@ -169,16 +172,10 @@ AudioPlayer = function (url) {
 
     this.createTrace = function (start, finish, delay, tag, text) {
         if (delay !== undefined && delay != null && delay > 0) {
-            return {st: start, ft: finish, dl: delay, tag: tag, text: text};
+            return {st: start, ft: finish, dl: delay, skip: false, tag: tag, text: text};
         }
-        return {st: start, ft: finish, dl: delay, tag: tag, text: text === undefined ? '' : text};
+        return {st: start, ft: finish, dl: delay, skip: false, tag: tag, text: text === undefined ? '' : text};
     }
-
-    // this.createTrace = function (start, finish, delay, tag) {
-    //     return this.createTrace(start, finish, delay, tag, '');
-    // }
-
-    this.control;
 
     var doTimeupdate = function () {
         if (__currentAudioContext == null) return
@@ -200,9 +197,9 @@ AudioPlayer = function (url) {
         console.log(msg)
         throw msg;
     }
-    __commandQueue = [];
-    __queueTimeoutId = -1;
-    __currentAudioContext = null;
+    var __commandQueue = [];
+    var __queueTimeoutId = -1;
+    var __currentAudioContext = null;
     __audio.src = url;
     __audio.load();
     __audio.onended = doEnded;
@@ -230,13 +227,23 @@ PlayerWrapper = function(player, traces, loop, startingImgName, stoppingImgName,
     __control.src = __stoppingImgName;
     __control.height = 30;
     __control.width = 30;
-    const __stateHandler = stateHandler;
+    const __stateHandler = new function() {
+        this.perform = function(state, tag) {
+            if (stateHandler != undefined && stateHandler != null) {
+                stateHandler.perform(state, tag)
+            }
+        }
+    }
     var __traces = traces;
     var __loop = loop;
     setState(STATE.STARTED)
 
     this.setTraces = function (traces) {
         __traces = traces;
+    }
+
+    this.getTraces = function () {
+        return __traces;
     }
 
     this.setLoop = function (loop) {
