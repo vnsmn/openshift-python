@@ -52,3 +52,19 @@ class UserTopic(models.Model):
         verbose_name_plural = "--"
         app_label = 'english'
 
+
+class Dictionary(models.Model):
+    user_id = models.IntegerField(db_index=False, unique=False)
+    word = models.CharField(max_length=128, db_index=False, unique=False, verbose_name="")
+    learnt = models.BooleanField(db_index=False, unique=False, verbose_name="")
+
+    def __str__(self):
+        return self.word
+
+    class Meta:
+        db_table = 'dictionary'
+        unique_together = ('user_id', 'word')
+        verbose_name = "--"
+        verbose_name_plural = "--"
+        app_label = 'english'
+

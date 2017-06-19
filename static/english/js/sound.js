@@ -46,6 +46,18 @@ function loadJson(fileName, handler) {
     });
 }
 
+function getValueOfProp(ref, prop, defValue) {
+    return isAssignedProp(ref, prop) ? ref[prop] : defValue;
+}
+
+function isAssignedProp(ref, prop) {
+    return isAssigned(ref) && isAssigned(prop) && prop in ref;
+}
+
+function isAssigned(ref) {
+    return ref !== undefined && ref != null;
+}
+
 var STATE = {
     STARTED : "0",
     STOPED : "1"
@@ -338,7 +350,6 @@ PersistentObject = function() {
     this.saveToServer = function (query, fn) {
         let sdata = JSON.stringify(self.get());
         postJson(query, sdata, function(ret) {
-            console.log(ret)
             try {
                 fn();
             } catch (e) {

@@ -9,6 +9,7 @@ from django.views.generic.list import ListView
 from django.http import HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 
+from english.dictionary import DictionaryHelper
 from english.irregular import IrregularHelper
 from english.models import Topics, Topic, UserTopic
 from core.models import UserResources
@@ -52,6 +53,9 @@ class TopicView(TemplateView):
         if 'irregular' == self.name:
             IrregularHelper.fill_context_data(self.uid, self.name, context)
             self.template_name = context["template_name"]
+        if 'dictionary' == self.name:
+            DictionaryHelper.fill_context_data(self.uid, self.name, context)
+            self.template_name = context["template_name"]
         return context
 
 
@@ -68,6 +72,16 @@ def topic_handler(request, topic_name, uid):
                 __ret = __read_irregular(topic_name, uid)
                 if not __ret or __ret == '':
                     __ret = json.dumps({})
+        if topic_name == 'dictionary':
+            q = request.GET.get('dir', '')
+            if q == 'ssave' or q == 'wsave':
+                __in = json.loads(request.body)
+                __save_dictionary(__in, topic_name, uid, q)
+            else:
+                if q == 'sread' or q == 'wread':
+                    __ret = __read_dictionary(topic_name, uid, q)
+                    if not __ret or __ret == '':
+                        __ret = json.dumps({})
     except Exception as err:
         logger.error("error: {0}".format(err))
         return HttpResponse("error: {0}".format(err))
@@ -81,6 +95,20 @@ def __save_irregular(instance_js, topic_name, uid):
 
 def __read_irregular(topic_name, uid):
     return IrregularHelper.read(uid, topic_name)
+
+
+def __save_dictionary(instance_js, topic_name, uid, q):
+    if q == 'ssave':
+        DictionaryHelper.saveSettings(uid, topic_name, instance_js)
+    else:
+        DictionaryHelper.saveWords(uid, topic_name, instance_js)
+
+
+def __read_dictionary(topic_name, uid, q):
+    if q == 'sread':
+        return DictionaryHelper.readSettings(uid, topic_name)
+    else:
+        return DictionaryHelper.readWords(uid, topic_name)
 
 # pip freeze
 # pip install functools32
