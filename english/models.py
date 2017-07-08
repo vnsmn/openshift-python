@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pip install jsonfield==1.0.1
+# pip install jsonfield==2.0.2
 # sudo pip install django==1.8
 
 from django.db import models
