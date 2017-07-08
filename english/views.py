@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from english.dictionary import DictionaryHelper
 from english.irregular import IrregularHelper
+from english.userjsndata import JSNHelper
 from english.models import Topics, Topic, UserTopic
 from core.models import UserResources
 from django.db import transaction
@@ -64,14 +65,6 @@ class TopicView(TemplateView):
 def topic_handler(request, topic_name, uid):
     try:
         __ret = None
-        if topic_name == 'irregular':
-            if request.GET.get('dir', '') == 'save':
-                __in = json.loads(request.body)
-                __save_irregular(__in, topic_name, uid)
-            else:
-                __ret = __read_irregular(topic_name, uid)
-                if not __ret or __ret == '':
-                    __ret = json.dumps({})
         if topic_name == 'dictionary':
             q = request.GET.get('dir', '')
             if q == 'ssave' or q == 'wsave':
@@ -89,14 +82,6 @@ def topic_handler(request, topic_name, uid):
 
 
 # https://djbook.ru/rel1.8/ref/models/instances.html
-def __save_irregular(instance_js, topic_name, uid):
-    IrregularHelper.save(uid, topic_name, instance_js)
-
-
-def __read_irregular(topic_name, uid):
-    return IrregularHelper.read(uid, topic_name)
-
-
 def __save_dictionary(instance_js, topic_name, uid, q):
     if q == 'ssave':
         DictionaryHelper.saveSettings(uid, topic_name, instance_js)
@@ -109,6 +94,25 @@ def __read_dictionary(topic_name, uid, q):
         return DictionaryHelper.readSettings(uid, topic_name)
     else:
         return DictionaryHelper.readWords(uid, topic_name)
+
+
+@csrf_exempt
+def user_jsn_data(request, mode, name, uid):
+    try:
+        __ret = None
+        if mode == 'w':
+            __in = json.loads(request.body)
+            JSNHelper.save(uid, name, __in)
+        elif mode == 'r':
+            __ret = json.dumps(JSNHelper.read(uid, name))
+            if not __ret or __ret == '':
+                __ret = json.dumps({})
+        else:
+            raise NotImplementedError()
+    except Exception as err:
+        logger.error("error: {0}".format(err))
+        return HttpResponse("error: {0}".format(err))
+    return HttpResponse(__ret, content_type='application/json')
 
 # pip freeze
 # pip install functools32

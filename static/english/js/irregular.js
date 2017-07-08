@@ -1,387 +1,17 @@
-var player = null;
-var player_example = null;
+/**
+ * Created by vns on 7/5/17.
+ */
 
-var __context;
-var __traces = {}
-var __playAllWrapper;
-var __startImgName;
-var __stopImgName;
-
-var Context = function(meta_sound_url, example_sound_url, irregular_url) {
-    this.meta_sound_url = meta_sound_url;
-    this.example_sound_url = example_sound_url;
-    this.irregular_url = irregular_url;
-
-    this.meta_sound = null;
-    this.example_sound = null;
-    this.irregular = null;
-
-    this.isLoaded = function() {
-        return this.meta_sound != null && this.example_sound != null && this.irregular != null;
-    }
-}
-
-function loadFile(ctx) {
-    loadJson(ctx.meta_sound_url, function (response) {
-        ctx.meta_sound = response;
-    });
-    loadJson(ctx.example_sound_url, function (response) {
-        ctx.example_sound = response;
-    });
-    loadJson(ctx.irregular_url, function (response) {
-        ctx.irregular = response;
-    });
-}
-
-function loadPage(ctx, startImgName, stopImgName, callback) {
-    __context = ctx;
-    __startImgName = startImgName;
-    __stopImgName = stopImgName;
-
-    loadFile(ctx.i50);
-    loadFile(ctx.i100);
-    loadFile(ctx.i150);
-
-    var intervalid = setInterval(function() {
-        if (__context.i50.isLoaded() && __context.i100.isLoaded() && __context.i150.isLoaded()) {
-            clearInterval(intervalid);
-            var content = document.getElementById("table1");
-            content.style.display = 'none'
-            callback();
-            createPage();
-            showContent();
-            content.style.display = 'block'
-        }
-    }, 1000)
-}
-
-function getTimes(soundJsn, data) {
-    let l = soundJsn.lines[data];
-    let t1 = l === undefined || l == null ? 0 : l[0];
-    let t2 = l === undefined || l == null ? 0 : l[1];
-    return {t1:t1, t2:t2}
-}
-
-function getTrn(soundJsn, data) {
-    let l = soundJsn.lines[data];
-    return l === undefined || l == null ? '' : '[' + l[2] + ']';
-}
-
-var RowStateHandler = function() {
-    this.perform = function (state, ctl) {
-        var controlid = document.getElementById("controlid");
-        var all_ctls = controlid.getElementsByTagName('*');
-        if (state == 'start') {
-            controlid.disabled = true;
-            [].forEach.call(all_ctls, function(el) {
-                el.disabled = true;
-            });
-        } else if (state == 'start_trace') {
-            if (ctl !== undefined) {
-                let settings2 = SettingsSingleton.getInstance().get();
-                if (settings2['scroll'] !== undefined && settings2.scroll)
-                    ctl.scrollIntoView(true);
-                let attr = ctl.getAttribute('irr');
-                if (attr == 'rus') {
-                    ctl.style.color = 'grey'
-                    ctl.style.fontWeight = 'bold'
-                } else {
-                    ctl.innerHTML = ctl.innerHTML.toUpperCase();
-                    ctl.style.color = 'red'
-                    ctl.style.fontWeight = 'bold'
-                }
-            }
-        } else if (state == 'stop_trace') {
-            if (ctl !== undefined) {
-                ctl.innerHTML = ctl.innerHTML.toLowerCase();
-                ctl.style.color = 'black'
-                ctl.style.fontWeight = 'normal'
-            }
-        } else if (state == 'stop') {
-            if (ctl !== undefined) {
-                ctl.innerHTML = ctl.innerHTML.toLowerCase();
-                ctl.style.color = 'black'
-                ctl.style.fontWeight = 'normal'
-            }
-            controlid.disabled = false;
-            [].forEach.call(all_ctls, function(el) {
-                el.disabled = false;
-            });
-        }
-    }
-}
-
-var ExampleRowStateHandler = function() {
-    this.perform = function (state, ctl) {
-        var controlid = document.getElementById("controlid");
-        var all_ctls = controlid.getElementsByTagName('*');
-        if (state == 'start') {
-            controlid.disabled = true;
-            [].forEach.call(all_ctls, function(el) {
-                el.disabled = true;
-            });
-        } else if (state == 'start_trace') {
-            if (ctl !== undefined) {
-                let settings2 = SettingsSingleton.getInstance().get();
-                if (settings2['scroll'] !== undefined && settings2.scroll)
-                    ctl.scrollIntoView(true);
-                let attr = ctl.getAttribute('irr');
-                if (attr == 'rus') {
-                    ctl.style.color = 'grey'
-                    ctl.style.fontWeight = 'bold'
-                } else {
-                    ctl.style.color = 'red'
-                    ctl.style.fontWeight = 'bold'
-                }
-            }
-        } else if (state == 'stop_trace') {
-            if (ctl !== undefined) {
-                ctl.style.color = 'black'
-                ctl.style.fontWeight = 'normal'
-            }
-        } else if (state == 'stop') {
-            if (ctl !== undefined) {
-                ctl.style.color = 'black'
-                ctl.style.fontWeight = 'normal'
-            }
-            controlid.disabled = false;
-            [].forEach.call(all_ctls, function(el) {
-                el.disabled = false;
-            });
-        }
-    }
-}
-
-function createPage() {
-    let settings = SettingsSingleton.getInstance().get();
-    let ctx = currentContext();
-    let dic = ctx.irregular;
-    let meta_sound = ctx.meta_sound;
-
-    player = new AudioPlayer(meta_sound.sound_url);
-    player_example = new AudioPlayer(ctx.example_sound.sound_url);
-
-    __traces = {};
-    let delay = settings.delay * 1000;
-    let loop = 1000;
-    var table = document.getElementById("table1");
-
-    let n = 1;
-    for (let t in dic.lines) {
-        let line = dic.lines[t];
-        let checked = settings.excludes[line.inf] !== undefined;
-
-        var row = table.insertRow(table.rows.length);
-        var celln = row.insertCell(0);
-        var cell0 = row.insertCell(1);
-        var cell1 = row.insertCell(2);
-        var cell2 = row.insertCell(3);
-        var cell21 = row.insertCell(4);
-        var cell3 = row.insertCell(5);
-        var cell31 = row.insertCell(6);
-        var cell4 = row.insertCell(7);
-        var cell41 = row.insertCell(8);
-        var cell5 = row.insertCell(9);
-
-        row.setAttribute("lineirr", line.inf)
-        let trace = []
-        let ts = getTimes(meta_sound, line.inf);
-        trace.push(player.createTrace(ts.t1, ts.t2, delay, cell2, line.inf))
-        ts = getTimes(meta_sound, line.pas);
-        trace.push(player.createTrace(ts.t1, ts.t2, delay, cell3, line.pas))
-        ts = getTimes(meta_sound, line.prf);
-        trace.push(player.createTrace(ts.t1, ts.t2, delay, cell4, line.prf))
-        ts = getTimes(meta_sound, line.rus);
-        trace.push(player.createTrace(ts.t1, ts.t2, delay, cell5, line.rus))
-        __traces[line.inf] = trace;
-        let playImg = new PlayerWrapper(player, [], loop, __startImgName, __stopImgName, new RowStateHandler());
-        row.playImg = playImg;
-
-        var chk = document.createElement("INPUT");
-        chk.setAttribute("type", "checkbox");
-        chk.checked = checked;
-        chk.setAttribute("identity", line.inf);
-        cell0.appendChild(chk);
-        cell0.setAttribute("irr","sel");
-        cell1.appendChild(playImg.getControl());
-        cell2.innerHTML = line.inf;
-        cell2.setAttribute("irr","inf");
-        cell21.innerHTML = getTrn(meta_sound, line.inf);
-        cell21.className = 'trn'
-        cell21.setAttribute("irr","inf");
-        cell3.innerHTML = line.pas;
-        cell3.setAttribute("irr","pas");
-        cell31.innerHTML = getTrn(meta_sound, line.pas);
-        cell31.setAttribute("irr","pas");
-        cell31.className = 'trn'
-        cell4.innerHTML = line.prf;
-        cell4.setAttribute("irr","prf");
-        cell41.innerHTML = getTrn(meta_sound, line.prf);
-        cell41.setAttribute("irr","prf");
-        cell41.className = 'trn'
-        cell5.innerHTML = line.rus;
-        cell5.setAttribute("irr","rus");
-        celln.innerHTML = n++;
-        celln.className = 'number';
-        row.examples = [];
-
-        createExample(table, row, line, ctx)
-    }
-
-    var playAll = document.getElementById("playAll");
-    __playAllWrapper = new PlayerWrapper(player, [], loop, __startImgName, __stopImgName, new RowStateHandler());
-    playAll.appendChild(__playAllWrapper.getControl());
-}
-
-function createExample(table, ln, line, ctx) {
-    if (line['examples'] === undefined || line.examples == null || line.examples.length == 0) {
-        return;
-    }
-
-    var delay = 1000;
-    var loop = 1000;
-
-    let allTrace = [];
-
-    if (line.examples.length > 1) {
-        var row = table.insertRow(table.rows.length);
-        ln.examples.push(row);
-
-        row.insertCell(0);
-        row.insertCell(1);
-
-        var cell1 = row.insertCell(2);
-        let playImg = new PlayerWrapper(player_example, allTrace, loop, __startImgName, __stopImgName, new ExampleRowStateHandler());
-        cell1.appendChild(playImg.getControl());
-        row.playImg = playImg;
-    }
-
-    [].forEach.call(line.examples, function(text) {
-        var row = table.insertRow(table.rows.length);
-        ln.examples.push(row);
-
-        row.insertCell(0);
-        row.insertCell(1);
-
-        var cell1 = row.insertCell(2);
-        let trace = []
-        let ts = getTimes(ctx.example_sound, text);
-        let playImg = new PlayerWrapper(player_example, trace, loop, __startImgName, __stopImgName, new ExampleRowStateHandler());
-        cell1.appendChild(playImg.getControl());
-        row.playImg = playImg;
-
-        var cell2 = row.insertCell(3);
-        cell2.setAttribute('colspan', 9);
-        cell2.innerHTML = text;
-        trace.push(player_example.createTrace(ts.t1, ts.t2, delay, cell2, text))
-        allTrace.push(player_example.createTrace(ts.t1, ts.t2, delay, cell2, text))
-    });
-}
-
-function showContent() {
-    let settings = SettingsSingleton.getInstance().get();
-    let excludes = settings == undefined || settings['excludes'] == undefined ? {} : settings.excludes;
-    let els = document.querySelectorAll('tr[lineirr]');
-    let all_trace = [];
-    let i = 0;
-    let min = settings.range_of_verbs * settings.range_of_verbs_index;
-    let max = min + settings.range_of_verbs;
-    let delay = settings.delay * 1000;
-    [].forEach.call(els, function(el) {
-        let inf = el.getAttribute('lineirr');
-        let selected = (i >= min && i < max) && (settings.mode == 'edit' || excludes[inf] === undefined);
-        i++;
-        el.style.display = selected ? '' : 'none';
-        [].forEach.call(el.examples, function(el_ex) {
-            el_ex.style.display = settings.example && selected ? '' : 'none'
-            el_ex.playImg.setLoop(settings.loop);
-            [].forEach.call(el_ex.playImg.getTraces(), function (trace) {
-                trace.dl = delay;
-            })
-        });
-        let line_trace = []
-        if (selected) {
-            if (settings.is_inf) {
-                line_trace.push(__traces[inf][0])
-                all_trace.push(__traces[inf][0])
-            }
-            __traces[inf][0].dl = delay;
-            if (settings.is_pas) {
-                line_trace.push(__traces[inf][1])
-                all_trace.push(__traces[inf][1])
-            }
-            __traces[inf][1].dl = delay;
-            if (settings.is_prf) {
-                line_trace.push(__traces[inf][2])
-                all_trace.push(__traces[inf][2])
-            }
-            __traces[inf][2].dl = delay;
-            if (settings.is_rus) {
-                line_trace.push(__traces[inf][3])
-                all_trace.push(__traces[inf][3])
-            }
-            __traces[inf][3].dl = delay;
-        }
-        el.playImg.setTraces(line_trace)
-        el.playImg.setLoop(settings.loop)
-    });
-    __playAllWrapper.setTraces(all_trace)
-    __playAllWrapper.setLoop(settings.loop)
-
-    els = document.querySelectorAll('input[sel]');
-    [].forEach.call(els, function(el) {
-        el.style.display = settings.mode == 'view' ? 'none' : 'inline'
-    });
-
-    els = document.querySelectorAll('td[irr]');
-    [].forEach.call(els, function(el) {
-        let attr = el.getAttribute('irr');
-        if (attr == 'inf')
-            el.style.display = settings.is_inf ? '' : 'none'
-        if (attr == 'pas')
-            el.style.display = settings.is_pas ? '' : 'none'
-        if (attr == 'prf')
-            el.style.display = settings.is_prf ? '' : 'none'
-        if (attr == 'rus')
-            el.style.display = settings.is_rus ? '' : 'none'
-        if (attr == 'sel')
-            el.style.display = settings.mode == 'view' ? 'none' : ''
-    });
-}
-
-function currentContext() {
-    let settings = SettingsSingleton.getInstance().get();
-    switch (settings.total_of_verbs) {
-        case 50: return __context.i50;
-        case 100: return __context.i100;
-        case 150: return __context.i150;
-    }
-    return null;
-}
-
-function createPageNavigation(viewID, doclick) {
-    let settings = SettingsSingleton.getInstance().get();
-    let ctx = currentContext();
-    let group = document.getElementById(viewID);
-    clearElement(viewID);
-    let count = Math.floor(ctx.irregular.lines.length / settings.range_of_verbs);
-    if (ctx.irregular.lines.length % settings.range_of_verbs > 0) count++;
-    for (var i = 0; i < count; i++) {
-        let el = document.createElement("input");
-        el.type = 'radio';
-        el.name = 'page_navigation';
-        el.value = i;
-        el.checked = i == settings.range_of_verbs_index;
-        el.onclick = function () {
-            SettingsSingleton.getInstance().get().range_of_verbs_index = this.value;
-            SettingsSingleton.getInstance().save();
-            doclick();
-        };
-        group.appendChild(el);
-        let span = document.createElement("span");
-        span.innerHTML = i + 1;
-        ;
-        group.appendChild(span);
+var CONTEXTS = {
+    am: {
+        50: undefined,
+        100: undefined,
+        150: undefined,
+    },
+    br: {
+        50: undefined,
+        100: undefined,
+        150: undefined,
     }
 }
 
@@ -389,8 +19,6 @@ var SettingsSingleton = (function () {
     var instance;
 
     function createInstance() {
-        //Settings.prototype = new PersistentObject();
-        //var object = new Settings('settings_irregular', null);
         return new PersistentObject();
     }
 
@@ -403,3 +31,401 @@ var SettingsSingleton = (function () {
         }
     };
 })();
+
+var VerbSingleton = (function () {
+    var instance;
+
+    function createInstance() {
+        return new PersistentObject();
+    }
+
+    return {
+        getInstance: function () {
+            if (!instance) {
+                instance = createInstance();
+            }
+            return instance;
+        }
+    };
+})();
+
+var URLHelper = (function () {
+    var reading_base = '/eng/jsn/r/';
+    var writting_base = '/eng/jsn/w/';
+    var userId;
+
+    return {
+        setUserId: function (id) {
+            userId = id;
+        },
+        getRSettingUrl: function () {
+            return reading_base + 'irregular_settings/' + userId;
+        },
+        getWSettingUrl: function () {
+            return writting_base + 'irregular_settings/' + userId;
+        },
+        getRVerbUrl: function () {
+            return reading_base + 'inf_irregular_verb/' + userId;
+        },
+        getWVerbUrl: function () {
+            return writting_base + 'inf_irregular_verb/' + userId;
+        }
+    };
+})();
+
+var __extImg;
+var __collImg;
+var __playStartImg;
+var __playStopImg;
+var audioTextUI;
+
+var Context = function (data_sound_url, example_sound_url, data_url) {
+    this.data_sound_url = data_sound_url;
+    this.example_sound_url = example_sound_url;
+    this.data_url = data_url;
+
+    this.data_sound = null;
+    this.example_sound = null;
+    this.data = null;
+
+    this.isLoaded = function () {
+        return this.data_sound != null && this.example_sound != null && this.data != null;
+    }
+};
+
+function createPageNavigation() {
+    let settings = SettingsSingleton.getInstance().get();
+    let ctx = currentContext();
+    let viewID = 'navigateid';
+    let group = document.getElementById(viewID);
+    clearElement(viewID);
+    let allRows = ctx.data.lines.length;
+    if (settings.mode == 'view') {
+        [].forEach.call(ctx.data.lines, function (l) {
+            if (l.sel) allRows--;
+        })
+    }
+    let count = Math.floor(allRows / settings.range_of_verbs);
+    if (allRows % settings.range_of_verbs > 0) count++;
+    if (settings.range_of_verbs_index >= count) {
+        settings.range_of_verbs_index = count - 1;
+        SettingsSingleton.getInstance().save();
+    }
+    for (var i = 0; i < count; i++) {
+        let el = document.createElement("input");
+        el.type = 'radio';
+        el.name = 'page_navigation';
+        el.value = i;
+        el.checked = i == settings.range_of_verbs_index;
+        el.onclick = function () {
+            SettingsSingleton.getInstance().get().range_of_verbs_index = this.value;
+            SettingsSingleton.getInstance().save();
+            recreatePage(SettingsSingleton.getInstance().get());
+        };
+        group.appendChild(el);
+        let span = document.createElement("span");
+        span.innerHTML = i + 1;
+        group.appendChild(span);
+    }
+}
+
+function createSettings() {
+    let mode = document.getElementById('modeid').getAttribute('mode');
+    let el = document.querySelector('input[name=page_navigation]:checked');
+    let range_of_verbs_index = el == null ? 0 : parseInt(el.value);
+    let settings = {
+        id: 'settings_irregular',
+        mode: mode,
+        is_inf: document.getElementById('infid').checked,
+        is_pas: document.getElementById('pasid').checked,
+        is_prf: document.getElementById('prfid').checked,
+        is_rus: document.getElementById('rusid').checked,
+        phonetic: document.getElementById('amid').checked
+            ? 'am'
+            : document.getElementById('brid').checked
+                ? 'br' : 'br',
+        total_of_verbs: document.getElementById('50id').checked
+            ? 50
+            : document.getElementById('100id').checked
+                ? 100
+                : document.getElementById('150id').checked
+                    ? 150
+                    : 50,
+        range_of_verbs: document.getElementById('group1id').checked
+            ? 10
+            : document.getElementById('group2id').checked
+                ? 25
+                : document.getElementById('group3id').checked
+                    ? 50
+                    : 25,
+        range_of_verbs_index: range_of_verbs_index,
+        loop: document.getElementById("loopid").checked ? 100 : 0,
+        delay: document.getElementById("delayid").selectedIndex,
+        scroll: document.getElementById("scrollid").checked,
+        example: document.getElementById("exampleid").checked
+    }
+    return settings;
+}
+
+function initControls() {
+    let settings = SettingsSingleton.getInstance().get();
+    document.getElementById('infid').checked = settings.is_inf;
+    document.getElementById('pasid').checked = settings.is_pas;
+    document.getElementById('prfid').checked = settings.is_prf;
+    document.getElementById('rusid').checked = settings.is_rus;
+    switch (settings.phonetic) {
+        case 'am':
+            document.getElementById('amid').checked = true;
+            break;
+        case 'br':
+            document.getElementById('brid').checked = true;
+            break;
+    }
+    switch (settings.total_of_verbs) {
+        case 50:
+            document.getElementById('50id').checked = true;
+            break;
+        case 100:
+            document.getElementById('100id').checked = true;
+            break;
+        case 150:
+            document.getElementById('150id').checked = true;
+            break;
+    }
+    switch (settings.range_of_verbs) {
+        case 10:
+            document.getElementById('group1id').checked = true;
+            break;
+        case 25:
+            document.getElementById('group2id').checked = true;
+            break;
+        case 50:
+            document.getElementById('group3id').checked = true;
+            break;
+    }
+    document.getElementById("loopid").checked = settings.loop > 0;
+    document.getElementById("delayid").selectedIndex = settings.delay;
+    document.getElementById("scrollid").checked = settings.scroll;
+    document.getElementById("exampleid").checked = settings.example;
+}
+
+function loadPage(urls, extImg, collImg, playStartImg, playStopImg, callback) {
+    __extImg = extImg;
+    __collImg = collImg;
+    __playStartImg = playStartImg;
+    __playStopImg = playStopImg;
+
+    for (let ph in urls.lines) {
+        let ln = urls.lines[ph];
+        for (let ctx in ln) {
+            let c = ln[ctx];
+            let ctxObj = new Context(c.snd_url, c.snd_example_url, c.data_url);
+            CONTEXTS[ph][ctx] = ctxObj;
+            if (ctxObj !== undefined) {
+                loadFile(ctxObj);
+            }
+            console.log(c + "," + ctx);
+        }
+    };
+
+    var intervalid = setInterval(function () {
+        let isLoaded = true;
+        for (let pn in CONTEXTS) {
+            let ln = CONTEXTS[pn];
+            for (let c in ln) {
+                let ctx = ln[c];
+                if (ctx !== undefined) isLoaded &= ctx.isLoaded();
+            }
+        };
+
+        if (isLoaded) {
+            clearInterval(intervalid);
+            createPageNavigation();
+            createUI();
+            repaint();
+            callback();
+        }
+    }, 1000)
+}
+
+function createUI() {
+    let settings = SettingsSingleton.getInstance().get();
+    let verbs = VerbSingleton.getInstance().get();
+    let ctx = currentContext();
+    let builder = new ContextBuilder(ctx.data_sound.sound_url);
+    builder.addRow('', true, false)
+        .addCol({tx: 'inf', tg: 'inf'})
+        .addCol({tx: '[inf]', tg: 'inf'})
+        .addCol({tx: 'pas', tg: 'pas'})
+        .addCol({tx: '[pas]', tg: 'pas'})
+        .addCol({tx: 'prf', tg: 'prf'})
+        .addCol({tx: '[prf]', tg: 'prf'})
+        .addCol({tx: 'rus', tg: 'rus'})
+        .toParent();
+    [].forEach.call(ctx.data.lines, function (l) {
+        let isSel = verbs[l.inf] !== undefined && verbs[l.inf] == true;
+        if (settings.mode == 'view' && isSel) return;
+        let inf = ctx.data_sound.lines[l.inf];
+        let pas = ctx.data_sound.lines[l.pas];
+        let prf = ctx.data_sound.lines[l.prf];
+        let rus = ctx.data_sound.lines[l.rus];
+        builder.addRow('', false, isSel)
+            .addCol({tx: l.inf, tg: 'inf', st: inf[0], ft: inf[1]})
+            .addCol({tx: l.inf, tg: 'inf', tx: '[' + inf[2] + ']', cl: 'grey'})
+            .addCol({tx: l.pas, tg: 'pas', st: pas[0], ft: pas[1]})
+            .addCol({tx: l.pas, tg: 'pas', tx: '[' + pas[2] + ']', cl: 'grey'})
+            .addCol({tx: l.prf, tg: 'prf', st: prf[0], ft: prf[1]})
+            .addCol({tx: l.prf, tg: 'prf', tx: '[' + prf[2] + ']', cl: 'grey'})
+            .addCol({tx: l.rus, tg: 'rus', st: rus[0], ft: rus[1], cl: 'grey'});
+        if (l.examples !== undefined) {
+            builder.setFile(ctx.example_sound.sound_url);
+            builder.addRow('', true, false)
+                .addCol({tx: 'simple', cl: 'gray'}).toParent();
+            [].forEach.call(l.examples, function (txt) {
+                let ex = ctx.example_sound.lines[txt];
+                builder.addRow(undefined, false).addCol({tx: txt, st: ex[0], ft: ex[1]}).toParent();
+            });
+        }
+        builder.toParent();
+    });
+
+    audioTextUI = new SpeakingTextUI('container', builder.build(),
+        __extImg, __collImg, __playStartImg, __playStopImg, true, false,
+        function (state) {
+            let els = document.querySelectorAll('.ctl');
+            [].forEach.call(els, function (el) {
+                disabledElement(el, state);
+            })
+        });
+}
+
+function loadFile(ctx) {
+    loadJson(ctx.data_sound_url, function (response) {
+        ctx.data_sound = response;
+    });
+    loadJson(ctx.example_sound_url, function (response) {
+        ctx.example_sound = response;
+    });
+    loadJson(ctx.data_url, function (response) {
+        ctx.data = response;
+    });
+}
+
+function currentContext() {
+    let settings = SettingsSingleton.getInstance().get();
+    let ph = settings.phonetic;
+    return CONTEXTS[ph][settings.total_of_verbs];
+}
+
+function repaint() {
+    SettingsSingleton.getInstance().recreate();
+    let settings = SettingsSingleton.getInstance().get();
+    audioTextUI.setPageSize(settings.range_of_verbs, settings.range_of_verbs_index);
+    UITools.callLate(function () {
+        audioTextUI.recreate();
+        audioTextUI.setShowSelection(settings.mode == 'edit');
+        repaintHideColumns(settings);
+        repaintExample(settings);
+        repaintDelay(settings);
+        repaintLoop(settings);
+        repaintScroll(settings);
+    });
+}
+
+function repaintHideColumns(settings) {
+    if (settings === undefined) settings = SettingsSingleton.getInstance().recreate().get();
+    let vis = [];
+    let hid = [];
+    if (settings.is_inf) { vis.push('inf') } else { hid.push('inf') };
+    if (settings.is_pas) { vis.push('pas') } else { hid.push('pas') };
+    if (settings.is_prf) { vis.push('prf') } else { hid.push('prf') };
+    if (settings.is_rus) { vis.push('rus') } else { hid.push('rus') };
+    audioTextUI.hideColumns(vis, false);
+    audioTextUI.hideColumns(hid, true);
+}
+
+function repaintExample(settings) {
+    if (settings === undefined) settings = SettingsSingleton.getInstance().recreate().get();
+    if (settings.example)
+        audioTextUI.expandAll();
+    else
+        audioTextUI.collapseAll();
+}
+
+function repaintDelay(settings) {
+    if (settings === undefined) settings = SettingsSingleton.getInstance().recreate().get();
+    audioTextUI.setDelay(settings.delay);
+}
+
+function repaintLoop(settings) {
+    if (settings === undefined) settings = SettingsSingleton.getInstance().recreate().get();
+    audioTextUI.setLoop(settings.loop);
+}
+
+function repaintScroll(settings) {
+    if (settings === undefined) settings = SettingsSingleton.getInstance().recreate().get();
+    audioTextUI.setScroll(settings.scroll);
+}
+
+function recreatePage(settings) {
+    if (settings === undefined) settings = SettingsSingleton.getInstance().recreate().get();
+    createPageNavigation();
+    UITools.callLate(function () {
+        audioTextUI.setPageSize(settings.range_of_verbs, settings.range_of_verbs_index);
+        audioTextUI.recreate();
+        if (settings.example) audioTextUI.expandAll();
+    });
+}
+
+function recreate() {
+    SettingsSingleton.getInstance().recreate();
+    UITools.callLate(function () {
+        clearElement('container');
+        createUI();
+        repaint();
+        createPageNavigation();
+    });
+}
+
+function save(el) {
+    let mode = el.getAttribute('mode');
+    let settings_url = URLHelper.getWSettingUrl();
+    let irregular_url = URLHelper.getWVerbUrl();
+    if (mode == 'save') {
+        SettingsSingleton.getInstance().recreate();
+        SettingsSingleton.getInstance().saveToServer(settings_url, function () {});
+    } else if (mode == 'edit') {
+        el.setAttribute('mode', 'view')
+        el.value = 'Edit'
+        SettingsSingleton.getInstance().recreate();
+        VerbSingleton.getInstance().recreate();
+        VerbSingleton.getInstance().saveToServer(irregular_url, function () {});
+        createPageNavigation();
+        clearElement("container");
+        createUI('edit');
+        repaint();
+    } else {
+        el.setAttribute('mode', 'edit');
+        el.value = 'View'
+        SettingsSingleton.getInstance().recreate();
+        createPageNavigation();
+        clearElement("container");
+        createUI();
+        repaint();
+    }
+}
+
+SettingsSingleton.getInstance().init('settings_irregular', createSettings);
+
+VerbSingleton.getInstance().init('inf_irregular_verb', function (data) {
+    let verbs = data === undefined ? {} : data;
+    if (audioTextUI === undefined) return {};
+    let ctx = audioTextUI.getContext();
+    [].forEach.call(ctx.rows, function (c) {
+        verbs[c.cols[0].tx] = c.sel !== undefined && c.sel;
+    });
+    verbs['id'] = 'inf_irregular_verb';
+    return verbs;
+});
+
+UITools.init('loading');

@@ -14,62 +14,24 @@ class IrregularHelper(object):
     @staticmethod
     def fill_context_data(uid, name, context):
         topics = Topics.objects.filter(name=name).first()
-        meta50 = Topic.objects.filter(topic=topics, name="i50.meta.sound.url").first()
-        meta100 = Topic.objects.filter(topic=topics, name="i100.meta.sound.url").first()
-        meta150 = Topic.objects.filter(topic=topics, name="i150.meta.sound.url").first()
-        example50 = Topic.objects.filter(topic=topics, name="i50.example.sound.url").first()
-        example100 = Topic.objects.filter(topic=topics, name="i100.example.sound.url").first()
-        example150 = Topic.objects.filter(topic=topics, name="i150.example.sound.url").first()
-        topic50 = Topic.objects.filter(topic=topics, name="i50.url").first()
-        topic100 = Topic.objects.filter(topic=topics, name="i100.url").first()
-        topic150 = Topic.objects.filter(topic=topics, name="i150.url").first()
+        topic_irregular = Topic.objects.filter(topic=topics, name="irregular.url").first()
         context["template_name"] = topics.template
         context["title"] = topics.title
-        context["i50_meta_sound_url"] = meta50.data
-        context["i100_meta_sound_url"] = meta100.data
-        context["i150_meta_sound_url"] = meta150.data
-        context["i50_example_sound_url"] = example50.data
-        context["i100_example_sound_url"] = example100.data
-        context["i150_example_sound_url"] = example150.data
-        context["i50_url"] = topic50.data
-        context["i100_url"] = topic100.data
-        context["i150_url"] = topic150.data
+        context["irregular_url"] = topic_irregular.data
         context["user_id"] = uid
 
     @staticmethod
-    def save(uid, topic_name, instance_js):
-        try:
-            validate(instance_js, _irregular_schema)
-            tp = Topics.objects.filter(name=topic_name).first()
-            if tp:
-                ut = UserTopic.objects.filter(user_id=uid, name="settings", topic=tp).first()
-                if not ut:
-                    ut = UserTopic(user_id=uid, name="settings", topic=tp)
-                ut.data = json.dumps(instance_js)
-                try:
-                    with transaction.atomic():
-                        ut.save()
-                except Exception as ex:
-                    transaction.rollback('core')
-                    logger.error(str(ex))
-                    raise ex
-        except ValidationError as ve:
-            logger.error(str(ve))
-            raise ve
-
-    @staticmethod
-    def read(uid, topic_name):
-        try:
-            tp = Topics.objects.filter(name=topic_name).first()
-            if tp:
-                ut = UserTopic.objects.filter(user_id=uid, name="settings", topic=tp).first()
-                if ut:
-                    return ut.data
-            return None
-        except Exception as ex:
-            logger.error(str(ex))
-            return None
-
+    def __bind_inf_irregular(db_jsn, jsn):
+        if db_jsn:
+            jsn2 = {}
+            for d in jsn:
+                jsn2[d] = jsn[d]
+            for d in db_jsn:
+                if jsn2[d] is None:
+                    jsn2[d] = db_jsn[d]
+            pass
+            return jsn2
+        return jsn
 
 # Create the schema, as a nested Python dict,
 # specifying the data elements, their names and their types.
@@ -87,6 +49,7 @@ _irregular_schema = {
         "is_pas": {"enum": [True, False]},
         "is_prf": {"enum": [True, False]},
         "is_rus": {"enum": [True, False]},
+        "phonetic": {"enum": ["am", "br"]},
         "total_of_verbs": {
             "type": "integer",
             "minimum": 50,

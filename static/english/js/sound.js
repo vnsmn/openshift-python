@@ -296,6 +296,13 @@ function clearElement(elementID) {
     }
 }
 
+function disabledElement(el, state) {
+    el.disabled = state;
+    [].forEach.call(el.childNodes, function (el) {
+        disabledElement(el, state);
+    });
+}
+
 //A page session lasts for as long as the browser is open and survives over page reloads and restores.
 //Opening a page in a new tab or window will cause a new session to be initiated
 
@@ -329,8 +336,9 @@ PersistentObject = function() {
     }
 
     this.recreate = function() {
-        __data = __init_fn();
+        __data = __init_fn(__data);
         self.save();
+        return self;
     }
 
     this.save = function() {

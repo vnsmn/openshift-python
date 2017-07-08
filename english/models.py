@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+# pip install jsonfield==1.0.1
+# sudo pip install django==1.8
 
 from django.db import models
+from django.contrib.postgres.fields import JSONField
 from django.contrib.auth.models import User
 
 
@@ -36,6 +39,8 @@ class Topic(models.Model):
         app_label = 'english'
 
 
+# https://pypi.python.org/pypi/jsonfield/2.0.2
+# https://docs.djangoproject.com/en/dev/ref/contrib/postgres/fields/#jsonfield
 class UserTopic(models.Model):
     user_id = models.IntegerField(db_index=False, unique=False)
     name = models.CharField(max_length=128, db_index=False, unique=False, verbose_name="Название")
@@ -48,6 +53,22 @@ class UserTopic(models.Model):
     class Meta:
         db_table = 'user_topic'
         unique_together = ('user_id', 'topic')
+        verbose_name = "--"
+        verbose_name_plural = "--"
+        app_label = 'english'
+
+
+class UserJsnData(models.Model):
+    user_id = models.IntegerField(db_index=False, unique=False)
+    name = models.CharField(max_length=128, db_index=False, unique=False, verbose_name="Название")
+    data = JSONField(verbose_name='data in json format')
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = 'user_jsn_data'
+        unique_together = ('user_id', 'name')
         verbose_name = "--"
         verbose_name_plural = "--"
         app_label = 'english'
