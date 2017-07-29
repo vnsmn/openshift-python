@@ -1,8 +1,9 @@
 {% extends 'topic.html' %}
 {% block content %}
     {% load static %}
-    <script src="{% static "english/js/sound.js?q=21111" %}"></script>
-    <script src="{% static "english/js/dictionary.js?q=11121" %}"></script>
+    <script src="{% static "english/js/sound.js" %}?q=2"></script>
+    <script src="{% static "english/js/ui.js" %}?q=2"></script>
+    <script src="{% static "english/js/dictionary.js" %}?q=5"></script>
     <div align="center"><b>{{ title }}</b></div>
     <style type="text/css">
         .ctl {
@@ -11,241 +12,101 @@
             font-weight: bold;
             color: darkslategray;
         }
-        .paddingBetweenRows td
-        {
-            padding:0 5px 0 5px;
-            border-left: thin solid grey ;
-            border-top: thin solid grey ;
+        table, th, td {
+            border: 1px solid grey;
+            border-collapse: collapse;
         }
-        .content table
-        {
-            width: 100%;
-            table-layout: fixed;
+        table[__subtable] td {
+            border: none;
         }
-        .content td
-        {
-            vertical-align: middle;
-            padding:0 0px 0 0px;
-            color: black;
+        table[__subtable] td {
+            border: 1px solid lightgray;
+            border-collapse: collapse;
+            background: linen;
         }
-        .content td.head
-        {
-            vertical-align: middle;
-            color: grey;
+        td[__header='1'] {
+            background: lightgray;
         }
-        td.trn
-        {
-            vertical-align: middle;
-            padding:0 10px 0 5px;
-            color: grey;
+        table[__subtable] td[__header='1'] {
+            background: lightgray;
         }
-        td.number
-        {
-            vertical-align: middle;
-            font-size: small;
-            color: grey;
-        }
-        td[irr]
-        {
-{#            display: inline;#}
+        #loading{
+            width:100%;
+            height:100%;
+            position:fixed;
+            z-index:9999;
+            background:url({% static "english/img/loading.gif" %}) no-repeat center center rgba(255,255,255,0.25)
         }
     </style>
-
+    <div id="loading" style="visibility: hidden"></div>
     <div id="controlid" style="border: thin solid grey">
-                <div class="ctl"><span>eng:</span><input type="checkbox" id="engid" checked onclick="repaint()"></div>
-                <div class="ctl"><span>rus:</span><input type="checkbox" id="rusid" checked onclick="repaint()"></div>
-                <div class="ctl"><span>loop:</span><input type="checkbox" id="loopid" checked onclick="repaint()"></div>
-                <div class="ctl"><span>scroll:</span><input type="checkbox" id="scrollid" onclick="repaint()"></div>
-                <div class="ctl"><span>example:</span><input type="checkbox" id="exampleid" onclick="repaint()"></div>
-                <div class="ctl"><span>sort:&nbsp;</span><select id="sortid" onclick="recreate()">
+        <div class="ctl"><span>eng:</span><input type="checkbox" id="enid" checked onclick="repaintHideColumns()"></div>
+        <div class="ctl"><span>rus:</span><input type="checkbox" id="ruid" checked onclick="repaintHideColumns()"></div>
+        <div class="ctl"><span>loop:</span><input type="checkbox" id="loopid" checked onclick="repaintLoop()"></div>
+        <div class="ctl"><span>scroll:</span><input type="checkbox" id="scrollid" onclick="repaintScroll()"></div>
+        <div class="ctl"><span>example:</span><input type="checkbox" id="exampleid" onclick="repaintExample()"></div>
+        <div class="ctl"><span>sort:&nbsp;</span><select id="sortid" onclick="recreate()">
                     <option value="0">none</option>
                     <option value="1">asc</option>
                     <option value="2">desc</option>
-                </select>
-                </div>
-                <div class="ctl"><span>delay:&nbsp;</span><select id="delayid" onclick="repaint()">
-                    <option value="0">0 sec</option>
-                    <option value="1">1 sec</option>
-                    <option value="2">2 sec</option>
-                </select>
-                </div>
-                <div class="ctl"><span>topic:&nbsp;</span><select id="topicid" onclick="recreate()">
-                </select>
-                </div>
-                <div class="ctl">
-                    &nbsp;&nbsp;&nbsp;section:
-                    <input id="group1id" type="radio" style="display:inline;" name="group" checked onclick="repaint()">10
-                    <input id="group2id" type="radio" style="display:inline;" name="group" onclick="repaint()">25
-                    <input id="group3id" type="radio" style="display:inline;" name="group" onclick="repaint()">50
-                </div>
-                <div class="ctl">
-                    &nbsp;&nbsp;&nbsp;<input id="modeid" type="button" checked onclick="save(this)" mode='view' value="Edit">
-                    <input id="saveid" type="button" checked onclick="save(this)" mode='save' value="Save">
-                </div>
-                <div id="navigateid" class="ctl" align="center" style="display: block"></div>
+                    <option value="3">[asc]</option>
+                    <option value="4">[desc]</option>
+                    <option value="5">random</option>
+        </select>
+        </div>
+        <div class="ctl"><span>delay:&nbsp;</span><select id="delayid" onclick="repaintDelay()">
+            <option value="0">0 sec</option>
+            <option value="1">1 sec</option>
+            <option value="2">2 sec</option>
+        </select>
+        </div>
+        <div class="ctl">
+            &nbsp;&nbsp;&nbsp;phonetic:
+            <input id="amid" type="radio" name="phonetic" checked onclick="recreate()">am
+            <input id="brid" type="radio" name="phonetic" onclick="recreate()">br
+        </div>
+        <div class="ctl">
+            &nbsp;&nbsp;&nbsp;topic:
+            <select id="topicid" onclick="recreate()"></select>
+        </div>
+        <div class="ctl">
+            &nbsp;&nbsp;&nbsp;section:
+            <input id="group1id" type="radio" style="display:inline;" name="group" checked onclick="recreatePage()">10
+            <input id="group2id" type="radio" style="display:inline;" name="group" onclick="recreatePage()">25
+            <input id="group3id" type="radio" style="display:inline;" name="group" onclick="recreatePage()">50
+        </div>
+        <div class="ctl">
+            &nbsp;&nbsp;&nbsp;<input id="modeid" type="button" checked onclick="save(this)" mode='view' value="Edit">
+            <input id="saveid" type="button" checked onclick="save(this)" mode='save' value="Save">
+            <input id="filterid" type="button" checked onclick="save(this)" mode='filter' value="Filter">
+        </div>
+        <div id="navigateid" class="ctl" align="center" style="display: block"></div>
     </div>
-
-    <div id="playAll"></div>
-    <table id="table1" cellpadding="0" cellspacing="0" class='content'>
-        <tr>
-            <td class="head"></td>
-            <td class="head"></td>
-            <td class="head" colspan="2" dic="eng">eng</td>
-            <td class="head" colspan="2" dic="rus">rus</td>
-        </tr>
-    </table>
-
+    <div id="filter" style="display: none"></div>
+    <div id="container"></div>
     <script>
-        SettingsSingleton.getInstance().init('settings_dictionary', createSettings);
-        WordsSingleton.getInstance().init('words_dictionary', createWords);
-
         document.onreadystatechange = function () {
             if (document.readyState == "complete") {
-                w1000: new Context("{{ w1000_meta_sound_url }}", "{{ w1000_example_sound_url }}", "{{ w1000_url }}"),
-                loadJson("{{ dictionary_url }}", function (response) {
-                     load(response);
-                });
-            }
-        }
-        function save(self) {
-            let mode = self.getAttribute('mode');
-            let surl = '/eng/dictionary/{{ user_id }}/?dir=ssave';
-            let wurl = '/eng/dictionary/{{ user_id }}/?dir=wsave';
-            if (mode == 'save') {
-                SettingsSingleton.getInstance().recreate();
-                SettingsSingleton.getInstance().saveToServer(surl, function () {});
-            } else if (mode == 'edit') {
-                self.setAttribute('mode', 'view')
-                self.value = 'Edit'
-                SettingsSingleton.getInstance().recreate();
-                SettingsSingleton.getInstance().saveToServer(surl, function () {
-                    WordsSingleton.getInstance().recreate();
-                    WordsSingleton.getInstance().saveToServer(wurl, function () {
-                        clearElement("table1");
-                        clearElement("playAll");
-                        load(null);
-                        disabledControlPanel(false);
-                    });
-                });
-            } else {
-                self.setAttribute('mode', 'edit')
-                self.value = 'View'
-                clearElement("table1");
-                clearElement("playAll");
-                SettingsSingleton.getInstance().saveToServer(surl, function () {
-                    load(null, function () {
-                        disabledControlPanel(true, {"modeid": ""});
-                    });
-                });
-            }
-        }
-        function load(topic, finished) {
-                let startImgName = "{% static 'english/img/play-start.png' %}";
-                let stopImgName = "{% static 'english/img/play-stop.png' %}";
-                let settings_url = '/eng/dictionary/{{ user_id }}/?dir=sread';
-                let words_url = '/eng/dictionary/{{ user_id }}/?dir=wread';
-                let ctx = null;
-                if (isAssigned(topic)) {
-                    ctx = [];
-                    console.log(topic);
-                    for (var t in topic.lines) {
-                        let ln = topic.lines[t];
-                        ctx.push(new Context(ln.meta_url, ln.example_url, ln.dict_url));
-                        var sel = document.getElementById("topicid");
-                        var opt = document.createElement("option");
-                        opt.text = t;
-                        sel.options.add(opt, 1);
-                    }
-                }
-                SettingsSingleton.getInstance().readFromServer(settings_url, function () {
-                    SettingsSingleton.getInstance().get().mode = document.getElementById('modeid').getAttribute('mode');
-                    SettingsSingleton.getInstance().save();
-                    initControls();
-                    WordsSingleton.getInstance().readFromServer(words_url, function () {
-                        WordsSingleton.getInstance().save();
-                        loadPage(ctx, startImgName, stopImgName, function () {
-                            createPageNavigation("navigateid", repaint);
-                            if (isAssigned(finished)) {
-                                finished();
-                            }
+                let extImg = "{% static 'english/img/plus.png' %}";
+                let collImg = "{% static 'english/img/minus.png' %}";
+                let playStartImg = "{% static 'english/img/play-start.png' %}";
+                let playStopImg = "{% static 'english/img/play-stop.png' %}";
+                URLHelper.setUserId({{ user_id }});
+
+                UITools.showLoading();
+                DataSingleton.getInstance().readFromServer(URLHelper.getReadingDataUrl(), function () {
+                    SettingsSingleton.getInstance().readFromServer(URLHelper.getReadingSettingsUrl(), function () {
+                        SettingsSingleton.getInstance().get().mode = document.getElementById('modeid').getAttribute('mode');
+                        SettingsSingleton.getInstance().save();
+                        initControls();
+                        loadJson('{{ dictionary_url }}', function (response) {
+                            loadPage(response, extImg, collImg, playStartImg, playStopImg, function () {
+                                UITools.hideLoading();
+                            })
                         });
-                    });
-                })
-        }
-
-        function repaint() {
-            SettingsSingleton.getInstance().recreate();
-            createPageNavigation("navigateid", repaint);
-            showContent()
-        }
-
-        function recreate() {
-            SettingsSingleton.getInstance().recreate();
-            clearElement("table1");
-            clearElement("playAll");
-            createPageNavigation("navigateid", repaint);
-            createPage()
-            showContent()
-        }
-
-        function createSettings() {
-            let mode = document.getElementById('modeid').getAttribute('mode');
-            let el = document.querySelector('input[name=page_navigation]:checked');
-            let range_of_words_index = el == null ? 0 : parseInt(el.value);
-            let settings = {
-                id: 'settings_dictionary',
-                mode: mode,
-                is_eng: document.getElementById('engid').checked,
-                is_rus: document.getElementById('rusid').checked,
-                range_of_words: document.getElementById('group1id').checked
-                        ? 10
-                        : document.getElementById('group2id').checked
-                            ? 25
-                            : document.getElementById('group3id').checked
-                                ? 50
-                                : 25,
-                range_of_words_index: range_of_words_index,
-                loop: document.getElementById("loopid").checked ? 100 : 0,
-                delay: document.getElementById("delayid").selectedIndex,
-                scroll: document.getElementById("scrollid").checked,
-                example: document.getElementById("exampleid").checked,
-                sort: document.getElementById("sortid").selectedIndex,
-                topic: document.getElementById("topicid").selectedIndex == -1
-                    ? 0 : document.getElementById("topicid").selectedIndex
+                    })
+                });
             }
-            return settings;
-        }
-
-        function createWords() {
-            let words = {
-                id: 'words_dictionary',
-                words:{}
-            }
-            //var els = document.querySelectorAll("tr[linedic]:not([style*='display: none;'])>td[dic=sel]>input[identity]");
-            var els = document.querySelectorAll("tr[linedic]>td[dic=sel]>input[identity]");
-            [].forEach.call(els, function(el) {
-                let id = el.getAttribute('identity')
-                words.words[id] = el.checked;
-            });
-            return words;
-        }
-
-        function initControls() {
-            let settings = SettingsSingleton.getInstance().get();
-            document.getElementById('engid').checked = settings.is_eng;
-            document.getElementById('rusid').checked = settings.is_rus;
-            switch (settings.range_of_words) {
-                case 10: document.getElementById('group1id').checked = true; break;
-                case 25: document.getElementById('group2id').checked = true; break;
-                case 50: document.getElementById('group3id').checked = true; break;
-            }
-            document.getElementById("loopid").checked = settings.loop > 0;
-            document.getElementById("delayid").selectedIndex = settings.delay;
-            document.getElementById("sortid").selectedIndex = settings.sort;
-            document.getElementById("topicid").selectedIndex = settings.topic;
-            document.getElementById("scrollid").checked = settings.scroll;
-            document.getElementById("exampleid").checked = settings.example;
         }
     </script>
-
 {% endblock %}

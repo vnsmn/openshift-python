@@ -16,10 +16,13 @@ BEGIN
   insert into english.topics select 1, 'irregular', 'irregular', 'irregular_topic.html';
   insert into english.topics select 2, 'dictionary', 'dictionary', 'dictionary_topic.html';
   insert into english.topics select 3, 'text', 'text', 'text_topic.html';
+  insert into english.topics select 4, 'longman', 'longman', 'longman_topic.html';
 
   insert into english.topic(id, name, topic_id, data) VALUES (1, 'irregular.url', 1, 'https://raw.githubusercontent.com/ellsworth-vinson/audio/master/irregular/irregular.json');
-  insert into english.topic(id, name, topic_id, data) VALUES (2, 'dictionary.url', 2, 'https://raw.githubusercontent.com/ellsworth-vinson/audio/master/dic/dictionary.json');
+  insert into english.topic(id, name, topic_id, data) VALUES (2, 'dictionary.url', 2, 'https://raw.githubusercontent.com/ellsworth-vinson/audio/master/dictionary/dictionary.json');
   insert into english.topic(id, name, topic_id, data) VALUES (3, 'text.url', 3, 'https://raw.githubusercontent.com/ellsworth-vinson/audio/master/text/text.json');
+  insert into english.topic(id, name, topic_id, data) VALUES (4, 'longman.url', 4, 'https://raw.githubusercontent.com/ellsworth-vinson/audio/master/dictionary/longman.json');
+
 
   select * from english.topics;
   select * from english.topic;

@@ -57,6 +57,9 @@ class TopicView(TemplateView):
         if 'dictionary' == self.name:
             DictionaryHelper.fill_context_data(self.uid, self.name, context)
             self.template_name = context["template_name"]
+        if 'longman' == self.name:
+            DictionaryHelper.fill_longman_context_data(self.uid, self.name, context)
+            self.template_name = context["template_name"]
         return context
 
 

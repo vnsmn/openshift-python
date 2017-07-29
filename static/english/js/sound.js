@@ -51,7 +51,7 @@ function getValueOfProp(ref, prop, defValue) {
 }
 
 function isAssignedProp(ref, prop) {
-    return isAssigned(ref) && isAssigned(prop) && prop in ref;
+    return isAssigned(ref) && isAssigned(prop) && typeof ref === 'object' && ref.hasOwnProperty(prop);
 }
 
 function isAssigned(ref) {
@@ -144,6 +144,10 @@ AudioPlayer = function (url) {
                 __currentAudioContext.starting = false;
                 //continue;
             }
+            if  (t.value.st === undefined || t.value.st == null
+                || t.value.ft === undefined || t.value.ft == null) {
+                return true;
+            }
             __audio.currentTime = t.value.st;
             __currentAudioContext.endTime = t.value.ft;
             console.log(t.value.st + "-" + t.value.ft + ";" + t.value.text);
@@ -214,6 +218,7 @@ AudioPlayer = function (url) {
     var __currentAudioContext = null;
     __audio.src = url;
     __audio.load();
+    __audio.preload = "auto";
     __audio.onended = doEnded;
     __audio.onpause = process;
     __audio.ontimeupdate = doTimeupdate;
@@ -337,6 +342,14 @@ PersistentObject = function() {
 
     this.recreate = function() {
         __data = __init_fn(__data);
+        __data['id'] = __name;
+        self.save();
+        return self;
+    }
+
+    this.clear = function () {
+        __data = {};
+        __data['id'] = __name;
         self.save();
         return self;
     }
@@ -350,6 +363,7 @@ PersistentObject = function() {
             __data = getFromSessionStorage(__name)
         if (!check(__data)) {
             __data = __init_fn();
+            __data['id'] = __name;
             self.save();
         }
         return __data;

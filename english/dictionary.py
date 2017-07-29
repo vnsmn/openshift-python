@@ -21,6 +21,15 @@ class DictionaryHelper(object):
         context["user_id"] = uid
 
     @staticmethod
+    def fill_longman_context_data(uid, name, context):
+        topics = Topics.objects.filter(name=name).first()
+        dictionary_url = Topic.objects.filter(topic=topics, name="longman.url").first()
+        context["template_name"] = topics.template
+        context["title"] = topics.title
+        context["dictionary_url"] = dictionary_url.data
+        context["user_id"] = uid
+
+    @staticmethod
     def saveSettings(uid, topic_name, instance_js):
         try:
             validate(instance_js, _dictionary_settings_schema)
